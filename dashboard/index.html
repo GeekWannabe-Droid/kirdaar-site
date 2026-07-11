@@ -421,8 +421,8 @@ function showOnboardingStatus(status, notes){
 }
 
 async function loadOverview(){
-  const { data: bookings } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
-  const { data: fraud } = await sb.from('fraud_flags').select('*');
+  const { data: bookings } = await sb.from('bookings').select('*').eq('venue_id', currentVenueId).order('created_at', { ascending: false });
+  const { data: fraud } = await sb.from('fraud_flags').select('*').eq('venue_id', currentVenueId);
   const confirmed = (bookings||[]).filter(b => b.status === 'confirmed');
   const totalRevenue = confirmed.reduce((s,b) => s + parseFloat(b.total_amount||0), 0);
   document.getElementById('statRevenue').innerHTML = `<small>₨</small>${totalRevenue.toLocaleString()}`;
@@ -439,7 +439,7 @@ async function loadOverview(){
 }
 
 async function loadHeatmap(){
-  const { data: bookings } = await sb.from('bookings').select('booking_date, start_time').in('status', ['held','pending_payment','confirmed']);
+  const { data: bookings } = await sb.from('bookings').select('booking_date, start_time').eq('venue_id', currentVenueId).in('status', ['held','pending_payment','confirmed']);
   document.getElementById('heatBookingCount').textContent = `${(bookings||[]).length} real booking(s)`;
   const counts = {};
   (bookings||[]).forEach(b => {
@@ -462,7 +462,11 @@ async function loadHeatmap(){
 }
 
 async function loadCustomers(){
-  const { data: customers } = await sb.from('customers').select('*').order('last_seen_at', { ascending: false });
+  const { data: venueBookingsForCustomers } = await sb.from('bookings').select('customer_id').eq('venue_id', currentVenueId);
+  const venueCustomerIds = [...new Set((venueBookingsForCustomers||[]).map(b => b.customer_id))];
+  const { data: customers } = venueCustomerIds.length
+    ? await sb.from('customers').select('*').in('id', venueCustomerIds).order('last_seen_at', { ascending: false })
+    : { data: [] };
   const wrap = document.getElementById('customersWrap');
   if (!customers || !customers.length) { wrap.innerHTML = '<div class="empty-state">No customers yet.</div>'; return; }
   const now = new Date(); let lapsedCount = 0;
@@ -478,7 +482,11 @@ async function loadCustomers(){
 }
 
 async function loadWinback(){
-  const { data: customers } = await sb.from('customers').select('*').order('last_seen_at', { ascending: true });
+  const { data: venueBookingsForWinback } = await sb.from('bookings').select('customer_id').eq('venue_id', currentVenueId);
+  const winbackCustomerIds = [...new Set((venueBookingsForWinback||[]).map(b => b.customer_id))];
+  const { data: customers } = winbackCustomerIds.length
+    ? await sb.from('customers').select('*').in('id', winbackCustomerIds).order('last_seen_at', { ascending: true })
+    : { data: [] };
   const now = new Date();
   const lapsed = (customers||[]).filter(c => {
     if (!c.last_seen_at) return false;
@@ -495,7 +503,11 @@ async function loadWinback(){
 }
 
 async function loadConversations(){
-  const { data: convos } = await sb.from('conversations').select('*, customers(name)').order('last_message_at', { ascending: false }).limit(15);
+  const { data: venueBookingsForConvos } = await sb.from('bookings').select('customer_id').eq('venue_id', currentVenueId);
+  const convoCustomerIds = [...new Set((venueBookingsForConvos||[]).map(b => b.customer_id))];
+  const { data: convos } = convoCustomerIds.length
+    ? await sb.from('conversations').select('*, customers(name)').in('customer_id', convoCustomerIds).order('last_message_at', { ascending: false }).limit(15)
+    : { data: [] };
   const wrap = document.getElementById('conversationsWrap');
   if (!convos || !convos.length) { wrap.innerHTML = '<div class="empty-state">No conversations yet.</div>'; return; }
   wrap.innerHTML = `<table class="tbl"><thead><tr><th>Customer</th><th>Last message</th><th>When</th></tr></thead><tbody>` +
@@ -510,8 +522,8 @@ async function loadConversations(){
 }
 
 async function loadPayments(){
-  const { data: pays } = await sb.from('payments').select('*').order('created_at', { ascending: false });
-  const { data: fraud } = await sb.from('fraud_flags').select('*').order('created_at', { ascending: false });
+  const { data: pays } = await sb.from('payments').select('*').eq('venue_id', currentVenueId).order('created_at', { ascending: false });
+  const { data: fraud } = await sb.from('fraud_flags').select('*').eq('venue_id', currentVenueId).order('created_at', { ascending: false });
   const verified = (pays||[]).filter(p => p.verification_status === 'verified');
   const mismatched = (pays||[]).filter(p => p.verification_status === 'mismatch');
   document.getElementById('payVerified').textContent = verified.length;
@@ -530,8 +542,12 @@ async function loadPayments(){
 }
 
 async function loadUsage(){
-  const { data: convos } = await sb.from('conversations').select('context');
-  const { data: customers } = await sb.from('customers').select('id');
+  const { data: venueBookingsForUsage } = await sb.from('bookings').select('customer_id').eq('venue_id', currentVenueId);
+  const usageCustomerIds = [...new Set((venueBookingsForUsage||[]).map(b => b.customer_id))];
+  const { data: convos } = usageCustomerIds.length
+    ? await sb.from('conversations').select('context').in('customer_id', usageCustomerIds)
+    : { data: [] };
+  const customers = usageCustomerIds.map(id => ({ id }));
   let messageCount = 0;
   (convos||[]).forEach(c => { const h=(c.context&&c.context.history)||[]; messageCount += h.length; });
   document.getElementById('usageConvos').textContent = (convos||[]).length;
