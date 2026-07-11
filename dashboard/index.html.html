@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirdaar.ai — Venue Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#05080f; --ink:#eaf2ee; --muted:#8fa3a0;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.05);
+  --em:#00d98b; --em-dim:rgba(0,217,139,.12);
+  --gold:#f0b429; --gold-dim:rgba(240,180,41,.12);
+  --red:#f06464; --red-dim:rgba(240,100,100,.12);
+  --radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;overflow:hidden}
+.urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;line-height:2}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
+
+#loginScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-card{width:380px;max-width:90vw;background:rgba(10,16,28,.7);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;padding:40px 34px}
+.login-card .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:1.3rem;margin-bottom:6px}
+.login-card .brand .mark{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#00d98b,#0b7a55);color:#04120c;font-family:'Noto Nastaliq Urdu',serif;font-size:1.4rem;font-weight:700;padding-bottom:7px;box-shadow:0 0 22px rgba(0,217,139,.35)}
+.login-card .ai{color:var(--em)}
+.login-card .sub{color:var(--muted);font-size:.86rem;margin-bottom:28px}
+.login-card label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:7px;margin-top:16px}
+.login-card input{width:100%;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:.9rem;outline:none}
+.login-card input:focus{border-color:rgba(0,217,139,.5)}
+.login-card .btn-login{width:100%;margin-top:26px;padding:13px;border-radius:100px;border:none;background:linear-gradient(135deg,#00e69a,#00b877);color:#04120c;font-weight:700;font-size:.92rem;cursor:pointer;font-family:inherit}
+.login-card .btn-login:disabled{opacity:.6;cursor:default}
+.login-card .forgot{display:block;text-align:center;margin-top:16px;font-size:.8rem;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;text-decoration:underline}
+.login-card .msg{margin-top:14px;font-size:.82rem;padding:10px 13px;border-radius:10px;display:none}
+.login-card .msg.error{background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28);display:block}
+.login-card .msg.ok{background:var(--em-dim);color:#7df5c8;border:1px solid rgba(0,217,139,.28);display:block}
+
+.gate-screen{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;background:var(--bg);overflow-y:auto;padding:40px 20px}
+.gate-screen.on{display:flex}
+.onboard-card{width:460px;max-width:92vw;background:rgba(10,16,28,.7);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;padding:40px 34px;margin:auto}
+.onboard-card label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:7px;margin-top:16px}
+.onboard-card input,.onboard-card select{width:100%;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:.9rem;outline:none}
+.onboard-card input:focus,.onboard-card select:focus{border-color:rgba(0,217,139,.5)}
+.onboard-card select{cursor:pointer}
+.onboard-card select option{background:#0a1018}
+.resource-row{display:grid;grid-template-columns:1fr 130px 32px;gap:8px;margin-bottom:8px}
+.resource-row input{padding:10px 12px;font-size:.84rem}
+.res-remove{background:rgba(240,100,100,.1);border:1px solid rgba(240,100,100,.25);color:#f28a8a;border-radius:8px;cursor:pointer;font-size:1.1rem}
+.btn-add-row{margin-top:6px;background:none;border:1px dashed var(--line);color:var(--muted);padding:9px 14px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:.8rem;width:100%}
+.status-card{max-width:420px;text-align:center;margin:auto;padding:20px}
+.status-ic{font-size:2.6rem;margin-bottom:14px}
+.status-card h2{font-size:1.3rem;margin-bottom:12px}
+.status-card p{color:var(--muted);font-size:.9rem;line-height:1.6}
+
+canvas#bg3d{position:fixed;inset:0;z-index:0;pointer-events:none}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 80% 55% at 72% -5%,rgba(0,217,139,.06),transparent 60%),linear-gradient(180deg,rgba(5,8,15,.35),rgba(5,8,15,.72))}
+
+.app{position:relative;z-index:2;display:none;grid-template-columns:240px 1fr;height:100vh}
+.app.on{display:grid}
+.side{background:rgba(8,13,24,.80);backdrop-filter:blur(16px);border-right:1px solid var(--line);padding:24px 16px 18px;display:flex;flex-direction:column;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:1.15rem;padding:2px 6px 16px}
+.brand .mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#00d98b,#0b7a55);color:#04120c;font-family:'Noto Nastaliq Urdu',serif;font-size:1.35rem;font-weight:700;padding-bottom:7px;box-shadow:0 0 22px rgba(0,217,139,.35)}
+.brand .ai{color:var(--em)}
+.venue{padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);margin-bottom:18px}
+.venue .v-name{font-size:.86rem;font-weight:500}
+.venue .v-sub{font-size:.7rem;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;font-size:.86rem;color:var(--muted);cursor:pointer;text-decoration:none}
+.nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+.nav a.on{color:#04120c;font-weight:600;background:linear-gradient(135deg,#00e69a,#00b877);box-shadow:0 6px 20px rgba(0,217,139,.28)}
+.nav a .ic{width:20px;text-align:center}
+.side .foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.side .foot .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1a2333,#0b1220);border:1px solid var(--line);display:grid;place-items:center;color:var(--em);font-weight:600;font-size:.76rem}
+.side .foot .logout{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;text-decoration:underline;font-family:inherit}
+
+.main{overflow-y:auto;padding:32px 40px 44px}
+.topbar{margin-bottom:26px}
+.topbar h1{font-size:1.7rem;font-weight:600}
+.topbar .sub{color:var(--muted);font-size:.86rem;margin-top:5px}
+.card{background:rgba(10,16,28,.6);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px}
+.card .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.card .card-h h3{font-size:.98rem;color:#fff;font-weight:600}
+.card .cap{font-size:.76rem;color:var(--muted);margin-bottom:20px}
+.grid{display:grid;gap:20px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g2{grid-template-columns:1fr 1fr}
+.mb20{margin-bottom:20px}
+.stat .top{display:flex;justify-content:space-between;margin-bottom:15px}
+.stat .lbl{font-size:.8rem;color:var(--muted)}
+.stat .ic{width:40px;height:40px;border-radius:11px;background:var(--em-dim);border:1px solid rgba(0,217,139,.25);display:grid;place-items:center}
+.stat.g .ic{background:var(--gold-dim);border-color:rgba(240,180,41,.28)}
+.stat.r .ic{background:var(--red-dim);border-color:rgba(240,100,100,.28)}
+.stat .val{font-size:2rem;font-weight:800;color:#fff}
+.stat .val small{font-size:.9rem;font-weight:500;color:var(--muted);margin-right:3px}
+.stat .delta{margin-top:10px;font-size:.78rem;color:var(--muted)}
+.kpi{padding:18px 20px}
+.kpi .k-lbl{font-size:.74rem;color:var(--muted);margin-bottom:7px}
+.kpi .k-val{font-size:1.35rem;font-weight:700;color:#fff}
+.kpi .k-val small{font-size:.78rem;color:var(--muted)}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:.72rem;color:var(--muted);font-weight:500;padding:0 14px 14px;border-bottom:1px solid var(--line)}
+.tbl td{padding:15px 14px;border-bottom:1px solid var(--line2);font-size:.84rem}
+.tbl tr:last-child td{border-bottom:none}
+.who{display:flex;align-items:center;gap:11px}
+.who .a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--line);display:grid;place-items:center;font-size:.74rem;color:var(--em);font-weight:600;flex-shrink:0}
+.money{color:var(--em);font-weight:600}
+.tag{font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:100px}
+.tag.em{background:var(--em-dim);color:#7df5c8;border:1px solid rgba(0,217,139,.28)}
+.tag.gold{background:var(--gold-dim);color:#f5cf72;border:1px solid rgba(240,180,41,.28)}
+.tag.red{background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28)}
+.tag.mut{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--line)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:.86rem}
+.coming-soon{border:1px dashed var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--muted);font-size:.85rem;line-height:1.7}
+.coming-soon b{color:var(--gold)}
+
+.heatwrap{overflow-x:auto}
+.heat{border-collapse:separate;border-spacing:4px;min-width:520px}
+.heat th{font-size:.7rem;color:var(--muted);font-weight:500;padding:2px}
+.heat td.hr{font-size:.68rem;color:var(--muted);text-align:right;padding-right:8px;white-space:nowrap}
+.heat td.cell{width:44px;height:24px;border-radius:6px;background:rgba(255,255,255,.03)}
+
+.page{display:none;animation:fade .3s ease}
+.page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+@media(max-width:1050px){.g3,.g4,.g2{grid-template-columns:1fr}.app{grid-template-columns:1fr}.side{display:none}}
+</style>
+</head>
+<body>
+<canvas id="bg3d"></canvas>
+<div class="veil"></div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand"><span class="mark">ک</span>Kirdaar<span class="ai">.ai</span></div>
+    <div class="sub">Venue owner dashboard — sign in to continue</div>
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="you@venue.com" autocomplete="username">
+    <label>Password</label>
+    <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-login" id="loginBtn">Sign In</button>
+    <button class="forgot" id="forgotBtn">Forgot password?</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ============ ONBOARDING FORM ============ -->
+<div id="onboardingScreen" class="gate-screen">
+  <div class="onboard-card">
+    <div class="brand"><span class="mark">ک</span>Kirdaar<span class="ai">.ai</span></div>
+    <div class="sub">Tell us about your business — <span id="onboardingUserEmail" style="color:var(--em)"></span></div>
+
+    <label>Business name</label>
+    <input type="text" id="obBusinessName" placeholder="e.g. Smash Padel Club">
+
+    <label>What kind of business?</label>
+    <select id="nicheSelect">
+      <option value="">Select…</option>
+      <option value="padel">Padel / Sports Club</option>
+      <option value="gym">Gym / Fitness</option>
+      <option value="clinic">Clinic</option>
+      <option value="salon">Salon / Spa</option>
+      <option value="restaurant">Restaurant</option>
+    </select>
+
+    <label>Address</label>
+    <input type="text" id="obAddress" placeholder="e.g. DHA Phase 6, Lahore">
+
+    <label>WhatsApp Business number</label>
+    <input type="text" id="obPhone" placeholder="e.g. 923001234567">
+
+    <div id="resourceSection" style="display:none;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)">
+      <label style="margin-top:0" id="resourceLabel">Courts</label>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px" id="resourceHint"></div>
+      <div id="resourceRows"></div>
+      <button type="button" id="addResourceBtn" class="btn-add-row">+ Add another</button>
+    </div>
+
+    <button class="btn-login" id="onboardingSubmit">Submit for Review</button>
+    <div class="msg" id="onboardingMsg"></div>
+  </div>
+</div>
+
+<!-- ============ STATUS SCREEN (pending/rejected) ============ -->
+<div id="statusScreen" class="gate-screen"></div>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div class="brand"><span class="mark">ک</span>Kirdaar<span class="ai">.ai</span></div>
+    <div class="venue"><div class="v-name" id="venueName">Loading…</div><div class="v-sub" id="venueSub"></div></div>
+    <nav class="nav" id="nav">
+      <a class="on" data-go="overview"><span class="ic">📊</span> Overview</a>
+      <a data-go="heatmap"><span class="ic">🔥</span> Heatmap &amp; Rates</a>
+      <a data-go="customers"><span class="ic">👥</span> Customers</a>
+      <a data-go="winback"><span class="ic">↩️</span> Win-back</a>
+      <a data-go="conversations"><span class="ic">💬</span> Conversations</a>
+      <a data-go="payments"><span class="ic">🛡️</span> Payments &amp; Fraud</a>
+      <a data-go="billing"><span class="ic">📈</span> Usage &amp; Billing</a>
+      <a data-go="settings"><span class="ic">⚙️</span> Settings</a>
+    </nav>
+    <div class="foot"><span class="av">SM</span><span id="userEmail" style="font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <button class="logout" id="logoutBtn">Sign out</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar"><h1 id="pg-title">Overview</h1><div class="sub" id="pg-sub"></div></div>
+
+    <section class="page on" id="overview">
+      <div class="grid g3 mb20">
+        <div class="card stat"><div class="top"><span class="lbl">Total revenue (confirmed)</span><span class="ic">💰</span></div><div class="val" id="statRevenue"><small>₨</small>—</div><div class="delta" id="statRevenueSub"></div></div>
+        <div class="card stat"><div class="top"><span class="lbl">Bookings</span><span class="ic">📅</span></div><div class="val" id="statBookings">—</div><div class="delta" id="statBookingsSub"></div></div>
+        <div class="card stat g"><div class="top"><span class="lbl">Fraud flagged</span><span class="ic">🛡️</span></div><div class="val" id="statFraud">—</div><div class="delta" id="statFraudSub"></div></div>
+      </div>
+      <div class="card"><div class="card-h"><h3>Recent bookings</h3></div><div class="cap">Latest 10, most recent first</div><div id="recentBookingsWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+
+    <section class="page" id="heatmap">
+      <div class="card mb20">
+        <div class="card-h"><h3>Real demand heatmap</h3><span class="tag em" id="heatBookingCount"></span></div>
+        <div class="cap">Built from your actual booking history — darker means more bookings landed in that hour/day.</div>
+        <div class="heatwrap"><table class="heat" id="heatTable"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Pricing recommendations</h3></div>
+        <div class="coming-soon">📊 <b>Not enough booking history yet.</b> Kirdaar needs a few weeks of real bookings before it can responsibly suggest price changes — this avoids guessing with too little data. This will activate automatically once there's enough volume.</div>
+      </div>
+    </section>
+
+    <section class="page" id="customers">
+      <div class="card"><div class="card-h"><h3>Customers</h3><span class="tag gold" id="lapsedCount"></span></div><div class="cap">Sorted by most recently seen. Gold = lapsed 30+ days.</div><div id="customersWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+
+    <section class="page" id="winback">
+      <div class="card mb20"><div class="card-h"><h3>Lapsed customers (real)</h3><span class="tag gold" id="winbackCount"></span></div><div class="cap">Customers who haven't booked in 30+ days — real data from your database.</div><div id="winbackWrap"><div class="empty-state">Loading…</div></div></div>
+      <div class="card"><div class="coming-soon">✉️ <b>Sending win-back messages isn't wired up yet.</b> This needs a backend action that safely triggers the bot to message a customer (can't send WhatsApp messages directly from a browser — the access token can't live in client-side code). Straightforward to add as a small API endpoint on the bot server when you're ready.</div></div>
+    </section>
+
+    <section class="page" id="conversations">
+      <div class="card"><div class="card-h"><h3>Recent conversations</h3></div><div class="cap">Read-only view of the last message per customer, pulled from real conversation history.</div><div id="conversationsWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+
+    <section class="page" id="payments">
+      <div class="grid g3 mb20">
+        <div class="card kpi"><div class="k-lbl">Verified payments</div><div class="k-val" id="payVerified">—</div></div>
+        <div class="card kpi"><div class="k-lbl">Flagged mismatches</div><div class="k-val" id="payMismatch">—</div></div>
+        <div class="card kpi"><div class="k-lbl">Total verified revenue</div><div class="k-val" id="payRevenue"><small>₨</small> —</div></div>
+      </div>
+      <div class="card mb20"><div class="card-h"><h3>Payments</h3></div><div class="cap">Every recorded payment — screenshot-verified, admin-confirmed, or flagged</div><div id="paymentsWrap"><div class="empty-state">Loading…</div></div></div>
+      <div class="card"><div class="card-h"><h3>Fraud flags</h3></div><div class="cap">Mismatches between claimed and detected payment amounts</div><div id="fraudWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+
+    <section class="page" id="billing">
+      <div class="grid g3 mb20">
+        <div class="card kpi"><div class="k-lbl">Conversations tracked</div><div class="k-val" id="usageConvos">—</div></div>
+        <div class="card kpi"><div class="k-lbl">Messages handled (approx)</div><div class="k-val" id="usageMessages">—</div></div>
+        <div class="card kpi"><div class="k-lbl">Active customers</div><div class="k-val" id="usageCustomers">—</div></div>
+      </div>
+      <div class="card"><div class="coming-soon">💳 <b>Billing/invoicing isn't built yet</b> — there's no plan or invoice table in the database. Usage numbers above are real; billing is handled manually until a subscription system is added.</div></div>
+    </section>
+
+    <section class="page" id="settings">
+      <div class="card mb20"><div class="card-h"><h3>Venue details</h3></div><div class="cap">Read from your live database — edits here aren't wired up yet</div><div id="venueDetailsWrap"><div class="empty-state">Loading…</div></div></div>
+      <div class="card"><div class="coming-soon">⚙️ <b>Editing settings from here isn't built yet.</b> Venue details currently update via direct database changes. A proper settings-editor page is a natural next addition once the core dashboard is confirmed working.</div></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const SUPABASE_URL = "https://haftvbovrvcqmecaltmu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhZnR2Ym92cnZjcW1lY2FsdG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0NTcsImV4cCI6MjA5Njc3NTQ1N30.ZMZZkLnr16fwOOlesXF4los7yb2ohCaV26Tb7ny3e5I";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentVenueId = null;
+
+async function checkExistingSession(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await enterDashboard(session.user);
+}
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg'), btn = document.getElementById('loginBtn');
+  msg.className = 'msg'; msg.textContent = '';
+  if (!email || !password) { msg.className='msg error'; msg.textContent='Enter both email and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) { msg.className='msg error'; msg.textContent=error.message; return; }
+  await enterDashboard(data.user);
+});
+document.getElementById('forgotBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const msg = document.getElementById('loginMsg');
+  if (!email) { msg.className='msg error'; msg.textContent='Type your email above first.'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  msg.className = error ? 'msg error' : 'msg ok';
+  msg.textContent = error ? error.message : 'Password reset email sent — check your inbox.';
+});
+document.getElementById('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+async function enterDashboard(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('userEmail').textContent = user.email;
+
+  // Gate 1: does this user already administer an approved venue?
+  const { data: venues } = await sb.from('venues').select('id, name, address, type').limit(1);
+  if (venues && venues.length) {
+    document.getElementById('app').classList.add('on');
+    currentVenueId = venues[0].id;
+    document.getElementById('venueName').textContent = venues[0].name;
+    document.getElementById('venueSub').textContent = venues[0].address || venues[0].type || '';
+    loadOverview(); loadHeatmap(); loadCustomers(); loadWinback();
+    loadConversations(); loadPayments(); loadUsage(); loadSettings();
+    return;
+  }
+
+  // Gate 2: no venue yet — check onboarding request status
+  const { data: reqs } = await sb.from('onboarding_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1);
+  const req = reqs && reqs.length ? reqs[0] : null;
+
+  if (!req) { showOnboardingForm(user); return; }
+  if (req.status === 'pending') { showOnboardingStatus('pending'); return; }
+  if (req.status === 'rejected') { showOnboardingStatus('rejected', req.admin_notes); return; }
+  // status === 'approved' but no venue found yet (rare race) — show pending as a safe fallback
+  showOnboardingStatus('pending');
+}
+
+/* ================= ONBOARDING FORM ================= */
+const NICHE_CONFIG = {
+  padel: { label: 'Padel / Sports Club', resourceLabel: 'Courts', resourceHint: 'e.g. Indoor Court A, Indoor Court B' },
+  gym: { label: 'Gym / Fitness', resourceLabel: 'Membership types', resourceHint: 'e.g. Monthly, Annual, Day Pass' },
+  clinic: { label: 'Clinic', resourceLabel: 'Doctors / Rooms', resourceHint: 'e.g. Dr. Ayesha, Room 2' },
+  salon: { label: 'Salon / Spa', resourceLabel: 'Chairs / Stylists', resourceHint: 'e.g. Chair 1, Stylist - Ayesha' },
+  restaurant: { label: 'Restaurant', resourceLabel: 'Tables', resourceHint: 'e.g. Table 1 (4 seats), Table 2 (6 seats)' },
+};
+
+function showOnboardingForm(user){
+  document.getElementById('onboardingScreen').classList.add('on');
+  document.getElementById('onboardingUserEmail').textContent = user.email;
+  renderResourceRows(1);
+}
+let resourceRowCount = 0;
+function renderResourceRows(n){
+  const wrap = document.getElementById('resourceRows');
+  wrap.innerHTML = '';
+  resourceRowCount = 0;
+  for (let i = 0; i < n; i++) addResourceRow();
+}
+function addResourceRow(){
+  resourceRowCount++;
+  const wrap = document.getElementById('resourceRows');
+  const row = document.createElement('div');
+  row.className = 'resource-row';
+  row.innerHTML = `<input type="text" placeholder="Name" class="res-name">
+    <input type="number" placeholder="Price/hr (PKR)" class="res-price">
+    <button type="button" class="res-remove">&times;</button>`;
+  row.querySelector('.res-remove').addEventListener('click', () => row.remove());
+  wrap.appendChild(row);
+}
+document.getElementById('addResourceBtn')?.addEventListener('click', addResourceRow);
+
+document.getElementById('nicheSelect')?.addEventListener('change', (e) => {
+  const cfg = NICHE_CONFIG[e.target.value];
+  if (!cfg) return;
+  document.getElementById('resourceLabel').textContent = cfg.resourceLabel;
+  document.getElementById('resourceHint').textContent = cfg.resourceHint;
+  document.getElementById('resourceSection').style.display = 'block';
+});
+
+document.getElementById('onboardingSubmit')?.addEventListener('click', async () => {
+  const msg = document.getElementById('onboardingMsg');
+  const btn = document.getElementById('onboardingSubmit');
+  msg.className = 'msg';
+  const businessName = document.getElementById('obBusinessName').value.trim();
+  const niche = document.getElementById('nicheSelect').value;
+  const address = document.getElementById('obAddress').value.trim();
+  const phone = document.getElementById('obPhone').value.trim();
+  const resources = Array.from(document.querySelectorAll('.resource-row')).map(row => ({
+    name: row.querySelector('.res-name').value.trim(),
+    price_per_hour: parseFloat(row.querySelector('.res-price').value) || 0,
+  })).filter(r => r.name);
+
+  if (!businessName || !niche || !resources.length) {
+    msg.className = 'msg error'; msg.textContent = 'Fill in business name, niche, and at least one resource.'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  const { data: { user } } = await sb.auth.getUser();
+  const { error } = await sb.from('onboarding_requests').insert({
+    user_id: user.id,
+    business_name: businessName,
+    niche: niche,
+    answers: { address, phone, resources },
+  });
+  btn.disabled = false; btn.textContent = 'Submit for Review';
+
+  if (error) { msg.className = 'msg error'; msg.textContent = error.message; return; }
+  document.getElementById('onboardingScreen').classList.remove('on');
+  showOnboardingStatus('pending');
+});
+
+function showOnboardingStatus(status, notes){
+  const el = document.getElementById('statusScreen');
+  el.classList.add('on');
+  if (status === 'pending') {
+    el.innerHTML = `<div class="status-card"><div class="status-ic">⏳</div><h2>Under review</h2>
+      <p>Thanks! Your onboarding request has been submitted. We'll review it and email you once your dashboard is ready.</p>
+      <button class="btn-login" id="statusSignOut" style="max-width:200px;margin:24px auto 0">Sign out</button></div>`;
+  } else {
+    el.innerHTML = `<div class="status-card"><div class="status-ic">❌</div><h2>Not approved</h2>
+      <p>${notes ? escapeHtml(notes) : 'Your onboarding request wasn\\'t approved. Contact us for details.'}</p>
+      <button class="btn-login" id="statusSignOut" style="max-width:200px;margin:24px auto 0">Sign out</button></div>`;
+  }
+  document.getElementById('statusSignOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+}
+
+async function loadOverview(){
+  const { data: bookings } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
+  const { data: fraud } = await sb.from('fraud_flags').select('*');
+  const confirmed = (bookings||[]).filter(b => b.status === 'confirmed');
+  const totalRevenue = confirmed.reduce((s,b) => s + parseFloat(b.total_amount||0), 0);
+  document.getElementById('statRevenue').innerHTML = `<small>₨</small>${totalRevenue.toLocaleString()}`;
+  document.getElementById('statRevenueSub').textContent = `${confirmed.length} confirmed booking(s)`;
+  document.getElementById('statBookings').textContent = (bookings||[]).length;
+  document.getElementById('statBookingsSub').textContent = `${(bookings||[]).filter(b=>b.status==='held').length} currently held`;
+  document.getElementById('statFraud').textContent = (fraud||[]).length;
+  document.getElementById('statFraudSub').textContent = (fraud||[]).length ? 'flag(s) need review' : 'clean so far';
+  const wrap = document.getElementById('recentBookingsWrap');
+  const recent = (bookings||[]).slice(0,10);
+  if (!recent.length) { wrap.innerHTML = '<div class="empty-state">No bookings yet.</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Date</th><th>Time</th><th>Amount</th><th>Status</th></tr></thead><tbody>` +
+    recent.map(b => `<tr><td>${b.booking_date}</td><td>${(b.start_time||'').slice(0,5)}–${(b.end_time||'').slice(0,5)}</td><td class="money">₨ ${parseFloat(b.total_amount||0).toLocaleString()}</td><td>${statusTag(b.status)}</td></tr>`).join('') + `</tbody></table>`;
+}
+
+async function loadHeatmap(){
+  const { data: bookings } = await sb.from('bookings').select('booking_date, start_time').in('status', ['held','pending_payment','confirmed']);
+  document.getElementById('heatBookingCount').textContent = `${(bookings||[]).length} real booking(s)`;
+  const counts = {};
+  (bookings||[]).forEach(b => {
+    const day = new Date(b.booking_date + 'T00:00:00').getDay();
+    const hour = parseInt((b.start_time||'0:0').split(':')[0], 10);
+    const key = day + '_' + hour;
+    counts[key] = (counts[key]||0) + 1;
+  });
+  const maxCount = Math.max(1, ...Object.values(counts));
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const hours = Array.from({length:14}, (_,i) => i+10);
+  function label(h){ const ap=h<12?'AM':'PM'; let hh=h%12; if(hh===0)hh=12; return hh+' '+ap; }
+  function color(c){ if(!c) return 'rgba(255,255,255,.03)'; const v=c/maxCount; return `rgba(0,217,139,${(0.15+v*0.65).toFixed(2)})`; }
+  let head='<tr><th></th>'+days.map(d=>`<th>${d}</th>`).join('')+'</tr>';
+  let rows=hours.map(h=>'<tr><td class="hr">'+label(h)+'</td>'+days.map((_,d)=>{
+    const c=counts[d+'_'+h]||0;
+    return `<td class="cell" style="background:${color(c)}" title="${c} booking(s)"></td>`;
+  }).join('')+'</tr>').join('');
+  document.getElementById('heatTable').innerHTML = head+rows;
+}
+
+async function loadCustomers(){
+  const { data: customers } = await sb.from('customers').select('*').order('last_seen_at', { ascending: false });
+  const wrap = document.getElementById('customersWrap');
+  if (!customers || !customers.length) { wrap.innerHTML = '<div class="empty-state">No customers yet.</div>'; return; }
+  const now = new Date(); let lapsedCount = 0;
+  const rows = customers.map(c => {
+    const lastSeen = c.last_seen_at ? new Date(c.last_seen_at) : null;
+    const daysAgo = lastSeen ? Math.floor((now-lastSeen)/86400000) : null;
+    const isLapsed = daysAgo !== null && daysAgo >= 30;
+    if (isLapsed) lapsedCount++;
+    return `<tr><td><div class="who"><span class="a">${initials(c.name)}</span>${escapeHtml(c.name||'Unknown')}</div></td><td>${c.total_bookings||0}</td><td>${daysAgo===null?'—':(daysAgo===0?'today':daysAgo+' days ago')}</td><td>${isLapsed?'<span class="tag gold">Lapsed</span>':'<span class="tag em">Active</span>'}</td></tr>`;
+  }).join('');
+  document.getElementById('lapsedCount').textContent = `${lapsedCount} lapsed`;
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Customer</th><th>Bookings</th><th>Last seen</th><th>Segment</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function loadWinback(){
+  const { data: customers } = await sb.from('customers').select('*').order('last_seen_at', { ascending: true });
+  const now = new Date();
+  const lapsed = (customers||[]).filter(c => {
+    if (!c.last_seen_at) return false;
+    return Math.floor((now-new Date(c.last_seen_at))/86400000) >= 30;
+  });
+  document.getElementById('winbackCount').textContent = `${lapsed.length} candidate(s)`;
+  const wrap = document.getElementById('winbackWrap');
+  if (!lapsed.length) { wrap.innerHTML = '<div class="empty-state">No lapsed customers right now — good sign!</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Customer</th><th>Last seen</th><th>Total bookings</th></tr></thead><tbody>` +
+    lapsed.map(c => {
+      const daysAgo = Math.floor((now-new Date(c.last_seen_at))/86400000);
+      return `<tr><td><div class="who"><span class="a">${initials(c.name)}</span>${escapeHtml(c.name||'Unknown')}</div></td><td>${daysAgo} days ago</td><td>${c.total_bookings||0}</td></tr>`;
+    }).join('') + `</tbody></table>`;
+}
+
+async function loadConversations(){
+  const { data: convos } = await sb.from('conversations').select('*, customers(name)').order('last_message_at', { ascending: false }).limit(15);
+  const wrap = document.getElementById('conversationsWrap');
+  if (!convos || !convos.length) { wrap.innerHTML = '<div class="empty-state">No conversations yet.</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Customer</th><th>Last message</th><th>When</th></tr></thead><tbody>` +
+    convos.map(c => {
+      const history = (c.context && c.context.history) || [];
+      const last = history.length ? history[history.length-1] : null;
+      const lastText = last && last.parts && last.parts[0] ? (last.parts[0].text || '') : '(no messages yet)';
+      const name = c.customers ? c.customers.name : 'Unknown';
+      const when = c.last_message_at ? new Date(c.last_message_at).toLocaleString() : '—';
+      return `<tr><td><div class="who"><span class="a">${initials(name)}</span>${escapeHtml(name)}</div></td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(lastText.slice(0,80))}</td><td>${when}</td></tr>`;
+    }).join('') + `</tbody></table>`;
+}
+
+async function loadPayments(){
+  const { data: pays } = await sb.from('payments').select('*').order('created_at', { ascending: false });
+  const { data: fraud } = await sb.from('fraud_flags').select('*').order('created_at', { ascending: false });
+  const verified = (pays||[]).filter(p => p.verification_status === 'verified');
+  const mismatched = (pays||[]).filter(p => p.verification_status === 'mismatch');
+  document.getElementById('payVerified').textContent = verified.length;
+  document.getElementById('payMismatch').textContent = mismatched.length;
+  document.getElementById('payRevenue').innerHTML = `<small>₨</small> ${verified.reduce((s,p)=>s+parseFloat(p.amount_detected||0),0).toLocaleString()}`;
+
+  const pWrap = document.getElementById('paymentsWrap');
+  pWrap.innerHTML = !pays || !pays.length ? '<div class="empty-state">No payments recorded yet.</div>' :
+    `<table class="tbl"><thead><tr><th>Amount</th><th>Bank/Method</th><th>Status</th></tr></thead><tbody>` +
+    pays.map(p => `<tr><td class="money">₨ ${parseFloat(p.amount_detected||0).toLocaleString()}</td><td>${escapeHtml(p.bank_name||'—')}</td><td>${paymentTag(p.verification_status)}</td></tr>`).join('') + `</tbody></table>`;
+
+  const fWrap = document.getElementById('fraudWrap');
+  fWrap.innerHTML = !fraud || !fraud.length ? '<div class="empty-state">No fraud flags — clean record.</div>' :
+    `<table class="tbl"><thead><tr><th>Type</th><th>Details</th><th>Resolved</th></tr></thead><tbody>` +
+    fraud.map(f => `<tr><td>${escapeHtml(f.flag_type||'—')}</td><td style="font-size:.78rem;color:var(--muted)">${escapeHtml(JSON.stringify(f.details||{}))}</td><td>${f.resolved?'<span class="tag em">Resolved</span>':'<span class="tag red">Open</span>'}</td></tr>`).join('') + `</tbody></table>`;
+}
+
+async function loadUsage(){
+  const { data: convos } = await sb.from('conversations').select('context');
+  const { data: customers } = await sb.from('customers').select('id');
+  let messageCount = 0;
+  (convos||[]).forEach(c => { const h=(c.context&&c.context.history)||[]; messageCount += h.length; });
+  document.getElementById('usageConvos').textContent = (convos||[]).length;
+  document.getElementById('usageMessages').textContent = messageCount;
+  document.getElementById('usageCustomers').textContent = (customers||[]).length;
+}
+
+async function loadSettings(){
+  const { data: venue } = await sb.from('venues').select('*').eq('id', currentVenueId).single();
+  const { data: courts } = await sb.from('courts').select('*').eq('venue_id', currentVenueId).order('name');
+  const wrap = document.getElementById('venueDetailsWrap');
+  if (!venue) { wrap.innerHTML = '<div class="empty-state">Venue not found.</div>'; return; }
+  const courtRows = (courts||[]).map(c => `<tr><td>${escapeHtml(c.name)}</td><td class="money">₨ ${parseFloat(c.price_per_hour||0).toLocaleString()}/hr</td><td>${c.is_active?'<span class="tag em">Active</span>':'<span class="tag mut">Inactive</span>'}</td></tr>`).join('');
+  wrap.innerHTML = `
+    <table class="tbl">
+      <tbody>
+        <tr><td style="color:var(--muted)">Club name</td><td>${escapeHtml(venue.name)}</td></tr>
+        <tr><td style="color:var(--muted)">Address</td><td>${escapeHtml(venue.address||'—')}</td></tr>
+        <tr><td style="color:var(--muted)">Phone</td><td>${escapeHtml(venue.phone||'—')}</td></tr>
+        <tr><td style="color:var(--muted)">Type</td><td>${escapeHtml(venue.type||'—')}</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:20px;font-size:.8rem;color:var(--muted);margin-bottom:10px">Courts &amp; rates</div>
+    <table class="tbl"><thead><tr><th>Court</th><th>Rate</th><th>Status</th></tr></thead><tbody>${courtRows || '<tr><td colspan="3">No courts configured.</td></tr>'}</tbody></table>`;
+}
+
+function statusTag(s){ if(s==='confirmed')return '<span class="tag em">Confirmed</span>'; if(s==='held')return '<span class="tag gold">Held</span>'; if(s==='cancelled')return '<span class="tag mut">Cancelled</span>'; return `<span class="tag mut">${escapeHtml(s||'?')}</span>`; }
+function paymentTag(s){ if(s==='verified')return '<span class="tag em">✓ Verified</span>'; if(s==='mismatch')return '<span class="tag red">🚩 Mismatch</span>'; return `<span class="tag mut">${escapeHtml(s||'?')}</span>`; }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+const META = {
+  overview:['Overview','Real bookings, revenue and customers — live from your database'],
+  heatmap:['Heatmap & Rates','Real demand patterns from your booking history'],
+  customers:['Customers','Everyone who has booked at your venue'],
+  winback:['Win-back','Lapsed customers — real data, sending not wired up yet'],
+  conversations:['Conversations','Read-only view of recent chats'],
+  payments:['Payments & Fraud','Every recorded payment, verified or flagged'],
+  billing:['Usage & Billing','Real usage numbers; billing system not built yet'],
+  settings:['Settings','Your venue details, read from the live database'],
+};
+document.querySelectorAll('#nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === a.dataset.go));
+    document.querySelectorAll('#nav a').forEach(x => x.classList.toggle('on', x === a));
+    document.getElementById('pg-title').textContent = META[a.dataset.go][0];
+    document.getElementById('pg-sub').textContent = META[a.dataset.go][1];
+  });
+});
+
+checkExistingSession();
+
+(function(){
+  var canvas=document.getElementById('bg3d');
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!window.THREE || reduce){ if(canvas) canvas.style.display='none'; return; }
+  var intensity = 2.4;  // boosted for visibility per feedback
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  var scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x05080f,0.04);
+  var camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,100); camera.position.set(0,2.0,9);
+  var COLS=110,ROWS=50,SEP=0.44,count=COLS*ROWS;
+  var positions=new Float32Array(count*3),phases=new Float32Array(count),i=0,p=0;
+  for(var x=0;x<COLS;x++)for(var z=0;z<ROWS;z++){positions[p]=(x-COLS/2)*SEP;positions[p+1]=0;positions[p+2]=(z-ROWS/2)*SEP-4;phases[i]=Math.random()*Math.PI*2;i++;p+=3;}
+  var geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  var mat=new THREE.PointsMaterial({color:0x00d98b,size:0.065,transparent:true,opacity:0.5,sizeAttenuation:true});
+  var waves=new THREE.Points(geo,mat); waves.position.y=-2.2; scene.add(waves);
+  var shapes=[];
+  function addShape(g,x,y,z,col,op){var m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,wireframe:true,transparent:true,opacity:op}));m.position.set(x,y,z);m.userData={rs:0.0008+Math.random()*0.0018,fy:y,fo:Math.random()*Math.PI*2,baseOp:op};scene.add(m);shapes.push(m);}
+  addShape(new THREE.IcosahedronGeometry(1.5,1),-6,2.5,-4,0x00d98b,.22);
+  addShape(new THREE.OctahedronGeometry(1.1,0),6.5,3.0,-6,0xf0b429,.20);
+  addShape(new THREE.TorusGeometry(1.4,.04,8,60),5,0.4,-3,0x00d98b,.26);
+  var tX=0,tY=0,mX=0,mY=0;
+  addEventListener('mousemove',function(e){tX=(e.clientX/innerWidth-.5);tY=(e.clientY/innerHeight-.5);},{passive:true});
+  addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  var emerald=new THREE.Color(0x00d98b),gold=new THREE.Color(0xf0b429),clock=new THREE.Clock();
+  (function animate(){
+    requestAnimationFrame(animate);
+    if(document.hidden) return;
+    var t=clock.getElapsedTime();
+    mX+=(tX-mX)*0.05; mY+=(tY-mY)*0.05;
+    var amp=0.22*intensity, pos=geo.attributes.position.array, idx=0;
+    for(var x=0;x<COLS;x++)for(var z=0;z<ROWS;z++){pos[idx*3+1]=Math.sin(x*0.26+t*0.7)*amp+Math.cos(z*0.20+t*0.5)*amp+Math.sin(phases[idx]+t*0.6)*0.06;idx++;}
+    geo.attributes.position.needsUpdate=true;
+    mat.opacity=Math.min(0.30*intensity,0.85);
+    waves.rotation.y=t*0.02; waves.rotation.z=Math.sin(t*0.05)*0.05;
+    var mixv=(Math.sin(t*0.08)+1)/2; mat.color.copy(emerald).lerp(gold,mixv*0.22);
+    camera.position.x+=(mX*1.0-camera.position.x)*0.05; camera.position.y+=((2.0+mY*0.5)-camera.position.y)*0.05; camera.lookAt(0,-0.5,-2);
+    shapes.forEach(function(m){m.rotation.x+=m.userData.rs;m.rotation.y+=m.userData.rs*1.4;m.position.y=m.userData.fy+Math.sin(t*0.5+m.userData.fo)*0.3;m.material.opacity=Math.min(m.userData.baseOp*intensity,0.5);});
+    renderer.render(scene,camera);
+  })();
+})();
+</script>
+</body>
+</html>

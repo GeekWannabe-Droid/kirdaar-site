@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirdaar.ai — Aapke Business ka Digital Kirdaar | AI WhatsApp Receptionist</title>
+<meta name="description" content="Kirdaar.ai — Pakistan's AI receptionist for WhatsApp Business. Bookings, Urdu voice notes, payment verification aur fraud protection. 24/7.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#05080f;
+  --bg2:#080d18;
+  --ink:#eaf2ee;
+  --muted:#8fa3a0;
+  --line:rgba(255,255,255,.08);
+  --em:#00d98b;
+  --em-dim:rgba(0,217,139,.12);
+  --gold:#f0b429;
+  --card:rgba(255,255,255,.03);
+  --radius:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Sora',system-ui,sans-serif;
+  font-weight:300;
+  line-height:1.7;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.urdu{
+  font-family:'Noto Nastaliq Urdu','Jameel Noori Nastaleeq',serif;
+  direction:rtl;
+  line-height:2.1;
+}
+canvas#bg3d{position:fixed;inset:0;z-index:0;pointer-events:none}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,217,139,.07),transparent 60%),
+             linear-gradient(180deg,rgba(5,8,15,.25),rgba(5,8,15,.65));}
+main,nav,footer{position:relative;z-index:2}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+section{padding:110px 0}
+h1,h2,h3{font-weight:600;letter-spacing:-.02em}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--em);color:#04120c}
+
+/* ---------- NAV ---------- */
+nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:all .35s ease;padding:20px 0}
+nav.scrolled{background:rgba(5,8,15,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:12px 0}
+.navrow{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.25rem;letter-spacing:-.02em}
+.logo .mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#00d98b,#0b7a55);color:#04120c;
+  font-family:'Noto Nastaliq Urdu',serif;font-size:1.5rem;font-weight:700;line-height:1;padding-bottom:8px;
+  box-shadow:0 0 24px rgba(0,217,139,.35)}
+.logo .ai{color:var(--em)}
+.navlinks{display:flex;gap:34px;font-size:.86rem;font-weight:400;color:var(--muted)}
+.navlinks a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:100px;
+  font-weight:600;font-size:.92rem;transition:all .25s;cursor:pointer;border:none}
+.btn-em{background:linear-gradient(135deg,#00e69a,#00b877);color:#04120c;box-shadow:0 8px 32px rgba(0,217,139,.28)}
+.btn-em:hover{transform:translateY(-2px);box-shadow:0 14px 44px rgba(0,217,139,.42)}
+.btn-ghost{border:1px solid var(--line);color:var(--ink);background:rgba(255,255,255,.03)}
+.btn-ghost:hover{border-color:rgba(0,217,139,.5);background:var(--em-dim)}
+.btn-sm{padding:10px 22px;font-size:.85rem}
+@media(max-width:900px){.navlinks{display:none}}
+
+/* ---------- HERO ---------- */
+.hero{min-height:100vh;display:flex;align-items:center;padding:150px 0 80px}
+.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:60px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:9px;padding:8px 18px;border-radius:100px;
+  border:1px solid rgba(0,217,139,.35);background:var(--em-dim);font-size:.78rem;font-weight:500;
+  color:var(--em);letter-spacing:.04em;margin-bottom:28px}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--em);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,217,139,.5)}50%{box-shadow:0 0 0 7px rgba(0,217,139,0)}}
+.hero .urdu-head{font-size:clamp(2.2rem,4.5vw,3.6rem);font-weight:700;color:#fff;margin-bottom:6px;
+  background:linear-gradient(120deg,#fff 30%,#7df5c8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero .en-head{font-size:clamp(1.7rem,3.2vw,2.6rem);font-weight:700;line-height:1.25;margin:14px 0 22px}
+.hero .en-head em{font-style:normal;color:var(--em)}
+.hero p.sub{color:var(--muted);font-size:1.05rem;max-width:540px;margin-bottom:36px}
+.hero p.sub strong{color:var(--ink);font-weight:500}
+.hero-ctas{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:44px}
+.hero-stats{display:flex;gap:40px;flex-wrap:wrap}
+.hstat .n{font-size:1.5rem;font-weight:700;color:#fff}
+.hstat .n span{color:var(--em)}
+.hstat .l{font-size:.78rem;color:var(--muted);letter-spacing:.03em}
+
+/* phone mockup */
+.phone{width:340px;max-width:100%;margin:0 auto;border-radius:38px;padding:12px;
+  background:linear-gradient(160deg,#1a2333,#0b1220);border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 70px rgba(0,217,139,.10);transform:rotate(0deg)}
+.screen{border-radius:28px;overflow:hidden;background:#0b141a}
+.wa-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#1f2c34}
+.wa-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#00d98b,#0b7a55);
+  display:grid;place-items:center;font-family:'Noto Nastaliq Urdu',serif;color:#04120c;font-weight:700;padding-bottom:6px}
+.wa-name{font-size:.88rem;font-weight:600}
+.wa-status{font-size:.7rem;color:#7fd4ab}
+.wa-body{padding:16px 12px 20px;display:flex;flex-direction:column;gap:10px;min-height:390px;
+  background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:18px 18px}
+.msg{max-width:82%;padding:9px 13px;border-radius:14px;font-size:.8rem;line-height:1.55;opacity:0;transform:translateY(14px);transition:all .6s ease}
+.msg.show{opacity:1;transform:none}
+.msg .t{display:block;text-align:right;font-size:.6rem;color:rgba(255,255,255,.4);margin-top:3px}
+.msg.in{background:#1f2c34;border-top-left-radius:4px;align-self:flex-start}
+.msg.out{background:#005c4b;border-top-right-radius:4px;align-self:flex-end}
+.vnote{display:flex;align-items:center;gap:10px}
+.vnote .play{width:28px;height:28px;border-radius:50%;background:var(--em);color:#04120c;display:grid;place-items:center;font-size:.7rem;flex-shrink:0}
+.wave{display:flex;align-items:center;gap:2px;height:22px}
+.wave i{width:3px;border-radius:2px;background:rgba(255,255,255,.55);animation:wv 1.1s ease-in-out infinite}
+@keyframes wv{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+.sysbadge{align-self:center;background:rgba(0,217,139,.12);border:1px solid rgba(0,217,139,.35);
+  color:#7df5c8;font-size:.68rem;padding:7px 14px;border-radius:100px;text-align:center;opacity:0;transform:translateY(14px);transition:all .6s ease}
+.sysbadge.show{opacity:1;transform:none}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}.phone{margin-top:20px}}
+
+/* ---------- SECTION HEADERS ---------- */
+.sec-tag{color:var(--em);font-size:.78rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;margin-bottom:16px}
+.sec-urdu{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;color:#fff;margin-bottom:4px}
+.sec-en{font-size:clamp(1.4rem,2.6vw,2rem);font-weight:600;line-height:1.3;margin:10px 0 16px}
+.sec-sub{color:var(--muted);max-width:640px;font-size:1rem}
+.center{text-align:center}.center .sec-sub{margin:0 auto}
+
+/* reveal on scroll */
+.rv{opacity:0;transform:translateY(34px);transition:opacity .8s ease,transform .8s ease}
+.rv.visible{opacity:1;transform:none}
+
+/* ---------- PROBLEM ---------- */
+.prob{background:linear-gradient(180deg,transparent,rgba(240,68,68,.03),transparent)}
+.prob-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px}
+.pcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:34px 28px;transition:all .3s}
+.pcard:hover{border-color:rgba(240,100,100,.35);transform:translateY(-4px)}
+.pcard .ico{font-size:1.6rem;margin-bottom:18px;display:block}
+.pcard h3{font-size:1.05rem;margin-bottom:10px;color:#fff}
+.pcard p{font-size:.88rem;color:var(--muted)}
+.pcard .ru{display:block;margin-top:14px;font-size:.82rem;color:#f08a8a;font-weight:500}
+@media(max-width:900px){.prob-grid{grid-template-columns:1fr}}
+
+/* ---------- FEATURES ---------- */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:36px 30px;position:relative;overflow:hidden;transition:all .35s}
+.fcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,217,139,.6),transparent);opacity:0;transition:opacity .35s}
+.fcard:hover{border-color:rgba(0,217,139,.35);transform:translateY(-5px);background:rgba(0,217,139,.04)}
+.fcard:hover::before{opacity:1}
+.fcard .ico{width:52px;height:52px;border-radius:14px;background:var(--em-dim);border:1px solid rgba(0,217,139,.25);
+  display:grid;place-items:center;font-size:1.4rem;margin-bottom:22px}
+.fcard h3{font-size:1.08rem;margin-bottom:6px;color:#fff}
+.fcard .ru-tag{font-size:.8rem;color:var(--em);font-weight:500;display:block;margin-bottom:12px}
+.fcard p{font-size:.88rem;color:var(--muted)}
+@media(max-width:900px){.feat-grid{grid-template-columns:1fr}}
+
+/* ---------- HOW ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:60px;counter-reset:step}
+.step{position:relative;padding:38px 30px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+.step .num{font-size:3.2rem;font-weight:800;line-height:1;
+  background:linear-gradient(180deg,rgba(0,217,139,.9),rgba(0,217,139,.15));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:18px}
+.step h3{font-size:1.05rem;color:#fff;margin-bottom:8px}
+.step .ru-tag{font-size:.82rem;color:var(--em);display:block;margin-bottom:10px;font-weight:500}
+.step p{font-size:.88rem;color:var(--muted)}
+@media(max-width:900px){.steps{grid-template-columns:1fr}}
+
+/* ---------- INDUSTRIES ---------- */
+.ind-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:56px}
+.icard{border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;background:var(--card);
+  display:flex;gap:18px;align-items:flex-start;transition:all .3s}
+.icard:hover{border-color:rgba(240,180,41,.4);transform:translateY(-4px)}
+.icard .em{font-size:1.8rem;line-height:1}
+.icard h3{font-size:.98rem;color:#fff;margin-bottom:4px}
+.icard p{font-size:.82rem;color:var(--muted)}
+@media(max-width:900px){.ind-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.ind-grid{grid-template-columns:1fr}}
+
+/* ---------- CASE ---------- */
+.case{border:1px solid rgba(0,217,139,.25);border-radius:24px;padding:60px;margin-top:20px;
+  background:linear-gradient(135deg,rgba(0,217,139,.06),rgba(240,180,41,.04));display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center}
+.case blockquote{font-size:1.25rem;font-weight:400;line-height:1.6;color:#fff;max-width:640px}
+.case .who{margin-top:22px;color:var(--muted);font-size:.88rem}
+.case .who b{color:var(--em);font-weight:600}
+.case-stats{display:flex;flex-direction:column;gap:22px;text-align:right}
+.case-stats .n{font-size:2rem;font-weight:800;color:var(--em)}
+.case-stats .l{font-size:.75rem;color:var(--muted)}
+@media(max-width:900px){.case{grid-template-columns:1fr;padding:40px 28px}.case-stats{flex-direction:row;text-align:left}}
+
+/* ---------- PRICING ---------- */
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:60px;align-items:stretch}
+.plan{border:1px solid var(--line);border-radius:22px;padding:42px 34px;background:var(--card);
+  display:flex;flex-direction:column;transition:all .3s;position:relative}
+.plan:hover{transform:translateY(-5px)}
+.plan.hot{border-color:rgba(0,217,139,.5);background:linear-gradient(180deg,rgba(0,217,139,.07),rgba(255,255,255,.02));
+  box-shadow:0 24px 70px rgba(0,217,139,.12)}
+.plan .flag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#00e69a,#00b877);
+  color:#04120c;font-size:.7rem;font-weight:700;padding:6px 18px;border-radius:100px;letter-spacing:.06em}
+.plan h3{font-size:1rem;color:var(--muted);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
+.plan .ru-name{font-size:.85rem;color:var(--em);margin-bottom:18px;display:block}
+.plan .amount{font-size:2.4rem;font-weight:800;color:#fff;line-height:1.1}
+.plan .amount small{font-size:.85rem;color:var(--muted);font-weight:400}
+.plan .per{font-size:.78rem;color:var(--muted);margin-bottom:28px}
+.plan ul{list-style:none;margin-bottom:34px;flex:1}
+.plan li{font-size:.86rem;color:var(--muted);padding:8px 0;display:flex;gap:10px;align-items:flex-start}
+.plan li b{color:var(--ink);font-weight:500}
+.plan li::before{content:'✓';color:var(--em);font-weight:700;flex-shrink:0}
+.plan li.off{opacity:.35}.plan li.off::before{content:'—';color:var(--muted)}
+.price-note{text-align:center;color:var(--muted);font-size:.85rem;margin-top:30px}
+.price-note b{color:var(--gold);font-weight:600}
+@media(max-width:900px){.price-grid{grid-template-columns:1fr}}
+
+/* ---------- FAQ ---------- */
+.faq-list{max-width:760px;margin:50px auto 0}
+details{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:14px;overflow:hidden}
+summary{padding:22px 26px;cursor:pointer;font-weight:500;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--em);font-size:1.3rem;font-weight:400;transition:transform .3s}
+details[open] summary::after{transform:rotate(45deg)}
+details .a{padding:0 26px 22px;color:var(--muted);font-size:.88rem}
+details[open]{border-color:rgba(0,217,139,.3)}
+
+/* ---------- CTA ---------- */
+.cta-box{border:1px solid rgba(0,217,139,.3);border-radius:28px;padding:90px 40px;text-align:center;
+  background:radial-gradient(ellipse 70% 100% at 50% 0%,rgba(0,217,139,.12),transparent 70%);position:relative;overflow:hidden}
+.cta-box .urdu{font-size:clamp(1.8rem,3.6vw,3rem);font-weight:700;color:#fff;margin-bottom:8px}
+.cta-box h2{font-size:clamp(1.3rem,2.4vw,1.9rem);font-weight:600;margin:14px 0 18px}
+.cta-box p{color:var(--muted);max-width:520px;margin:0 auto 40px}
+.wa-cta{display:inline-flex;align-items:center;gap:12px;background:#25D366;color:#04120c;font-weight:700;
+  padding:18px 40px;border-radius:100px;font-size:1rem;box-shadow:0 12px 44px rgba(37,211,102,.35);transition:all .25s}
+.wa-cta:hover{transform:translateY(-3px);box-shadow:0 18px 60px rgba(37,211,102,.5)}
+
+/* ---------- FOOTER ---------- */
+footer{border-top:1px solid var(--line);padding:60px 0 40px;background:rgba(5,8,15,.7)}
+.foot{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap}
+.foot .tag{color:var(--muted);font-size:.85rem;margin-top:14px;max-width:320px}
+.foot .made{margin-top:18px;font-size:.82rem;color:var(--gold)}
+.fcols{display:flex;gap:70px;flex-wrap:wrap}
+.fcol h4{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:600}
+.fcol a{display:block;font-size:.86rem;color:var(--muted);padding:5px 0}
+.fcol a:hover{color:var(--em)}
+.copy{text-align:center;color:rgba(143,163,160,.55);font-size:.78rem;margin-top:50px;padding-top:26px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<canvas id="bg3d"></canvas>
+<div class="veil"></div>
+
+<nav id="nav">
+  <div class="wrap navrow">
+    <a href="#" class="logo"><span class="mark">ک</span>Kirdaar<span class="ai">.ai</span></a>
+    <div class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#how">Kaise Chalta Hai</a>
+      <a href="#industries">Industries</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="#cta" class="btn btn-ghost btn-sm" id="navSignIn">Sign In</a>
+      <a href="#cta" class="btn btn-em btn-sm">Free Demo Lein</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="pill"><span class="dot"></span> PAKISTAN KA PEHLA AI WHATSAPP RECEPTIONIST</div>
+      <div class="urdu urdu-head">ہر پیغام کا جواب، ہر وقت</div>
+      <h1 class="en-head">Your business answers <em>every WhatsApp</em> — even at 2 AM.</h1>
+      <p class="sub">Kirdaar.ai aapke WhatsApp Business number pe baith kar customers se baat karta hai — <strong>bookings leta hai, Urdu voice notes bhejta hai, payments verify karta hai</strong> — jab aap so rahe hote hain. Koi app nahi, koi website nahi. Sirf WhatsApp.</p>
+      <div class="hero-ctas">
+        <a href="#cta" class="btn btn-em">Free Demo Book Karein →</a>
+        <a href="#how" class="btn btn-ghost">Dekhein kaise kaam karta hai</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><div class="n">&lt;5<span>s</span></div><div class="l">Average reply time</div></div>
+        <div class="hstat"><div class="n">24<span>/7</span></div><div class="l">Kabhi chutti nahi</div></div>
+        <div class="hstat"><div class="n">3<span></span></div><div class="l">Zubanein — English, Urdu, Minglish</div></div>
+        <div class="hstat"><div class="n">0<span></span></div><div class="l">Missed customers</div></div>
+      </div>
+    </div>
+    <div class="phone" id="phoneDemo">
+      <div class="screen">
+        <div class="wa-head">
+          <div class="wa-avatar">ک</div>
+          <div><div class="wa-name">Smash Padel Club</div><div class="wa-status">online — powered by Kirdaar.ai</div></div>
+        </div>
+        <div class="wa-body">
+          <div class="msg in">Bhai kal raat 9 baje koi court free hai?<span class="t">11:42 PM</span></div>
+          <div class="msg out">Khushamdeed Ahmed bhai! 🎾 Kal raat 9–10 <b>Indoor Court A</b> bilkul free hai. Hold laga doon?<span class="t">11:42 PM</span></div>
+          <div class="msg in">Haan jani laga do, aur voice pe batao details</div>
+          <div class="msg out vnote"><span class="play">▶</span>
+            <span class="wave"><i style="height:8px"></i><i style="height:16px;animation-delay:.1s"></i><i style="height:11px;animation-delay:.2s"></i><i style="height:19px;animation-delay:.3s"></i><i style="height:9px;animation-delay:.4s"></i><i style="height:15px;animation-delay:.5s"></i><i style="height:12px;animation-delay:.6s"></i><i style="height:18px;animation-delay:.7s"></i><i style="height:8px;animation-delay:.8s"></i></span>
+            <span style="font-size:.68rem;color:rgba(255,255,255,.5)">0:11</span></div>
+          <div class="msg out">Ho gaya! ⏱️ Court A aapke naam pe <b>15 min hold</b> hai — 5,000 PKR ka payment screenshot bhej dein, booking pakki.<span class="t">11:43 PM</span></div>
+          <div class="sysbadge">✓ Payment verified · Booking confirmed — Fri 9:00 PM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- PROBLEM -->
+<section class="prob">
+  <div class="wrap">
+    <div class="rv">
+      <div class="sec-tag">The Problem</div>
+      <div class="urdu sec-urdu">رات کے گیارہ بجے کا کسٹمر بھی کسٹمر ہے</div>
+      <h2 class="sec-en">Every unanswered message is revenue walking to your competitor.</h2>
+      <p class="sec-sub">Pakistan mein business WhatsApp pe hota hai. Lekin aap ka staff 9 se 5 hai — aur customer ka sawal raat 11:42 pe aata hai. Jawab nahi mila? Wo agle number pe chala gaya.</p>
+    </div>
+    <div class="prob-grid">
+      <div class="pcard rv"><span class="ico">📵</span><h3>Missed Messages</h3>
+        <p>Studies show over 60% of customers move on if a business doesn't reply within minutes. Raat ko to koi replies hi nahi karta.</p>
+        <span class="ru">"Seen" chhor dena = customer chhor dena.</span></div>
+      <div class="pcard rv"><span class="ico">📒</span><h3>Register Wali Bookings</h3>
+        <p>Manual registers and memory-based scheduling mean double bookings, angry customers, and staff spending hours on the phone.</p>
+        <span class="ru">Double booking, double sharmindagi.</span></div>
+      <div class="pcard rv"><span class="ico">🧾</span><h3>Fake Payment Screenshots</h3>
+        <p>Edited bank screenshots are an epidemic. Verifying every transfer manually against your SMS is slow — and mistakes cost real money.</p>
+        <span class="ru">Har screenshot asli nahi hota, jani.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="rv center">
+      <div class="sec-tag">Features</div>
+      <div class="urdu sec-urdu">ایک ریسپشنسٹ جو کبھی چھٹی نہیں کرتا</div>
+      <h2 class="sec-en">One receptionist. Zero chutti. Full kirdaar.</h2>
+      <p class="sec-sub">Sirf chatbot nahi — aik mukammal digital staff member jo aapke business ki zuban bolta hai.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="fcard rv"><div class="ico">🗣️</div><h3>Bolta Hai, Sunta Hai</h3><span class="ru-tag">Urdu voice notes — asli awaaz mein</span>
+        <p>Customer voice note bhejta hai? Kirdaar sunta hai, samajhta hai, aur natural Urdu voice note mein jawab deta hai. Text ho ya awaaz — dono pe grip.</p></div>
+      <div class="fcard rv"><div class="ico">📅</div><h3>Bookings on Autopilot</h3><span class="ru-tag">Slot check → hold → confirm</span>
+        <p>Live availability checks against your real schedule, 15-minute payment holds, automatic expiry aur confirmation. Double booking ka scene hi khatam.</p></div>
+      <div class="fcard rv"><div class="ico">🧾</div><h3>Payment Verification</h3><span class="ru-tag">Screenshot? Kirdaar khud parh lega.</span>
+        <p>Bank transfer screenshots are read automatically — amount, bank, transaction ID — and matched against your records before a booking is confirmed.</p></div>
+      <div class="fcard rv"><div class="ico">🛡️</div><h3>Fraud Shield</h3><span class="ru-tag">Dhoka nahi chalega</span>
+        <p>Edited screenshots get flagged, repeat offenders get blacklisted automatically, and you get an alert before you lose a rupee.</p></div>
+      <div class="fcard rv"><div class="ico">📲</div><h3>Aapka Apna Number</h3><span class="ru-tag">Wohi WhatsApp, naya dimagh</span>
+        <p>Works on your existing WhatsApp Business number — customers notice nothing except faster replies. Aap admin commands se full control rakhte hain: <b>/held</b>, <b>/confirm</b>, <b>/nuke</b>.</p></div>
+      <div class="fcard rv"><div class="ico">🧠</div><h3>Aapke Business ki Zuban</h3><span class="ru-tag">Lahori ho ya Karachi wala andaaz</span>
+        <p>Trained on your prices, timings, policies and tone. English, Urdu, ya pura Minglish — Kirdaar wohi bolta hai jo aapka best salesman bolta.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="rv center">
+      <div class="sec-tag">How It Works</div>
+      <div class="urdu sec-urdu">تین قدم۔ بس۔</div>
+      <h2 class="sec-en">Live in one day. Coding required: zero.</h2>
+    </div>
+    <div class="steps">
+      <div class="step rv"><div class="num">01</div><h3>Connect</h3><span class="ru-tag">QR scan karein — 5 minute</span>
+        <p>Link your WhatsApp Business number with a simple QR scan. No new SIM, no new app, no IT guy needed.</p></div>
+      <div class="step rv"><div class="num">02</div><h3>Train</h3><span class="ru-tag">Apna business sikhayein</span>
+        <p>Batayein apne rates, timings, services aur andaaz. We tune Kirdaar's personality until it sounds exactly like your best employee.</p></div>
+      <div class="step rv"><div class="num">03</div><h3>Relax</h3><span class="ru-tag">Kirdaar sambhal lega</span>
+        <p>Bookings, payments, sawal-jawab — sab automatic. You just watch confirmed bookings land, with full control from your own phone.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- INDUSTRIES -->
+<section id="industries">
+  <div class="wrap">
+    <div class="rv">
+      <div class="sec-tag">Industries</div>
+      <div class="urdu sec-urdu">ہر وہ کاروبار جہاں واٹس ایپ پر کام ہوتا ہے</div>
+      <h2 class="sec-en">Built for how Pakistan actually does business.</h2>
+      <p class="sec-sub">Agar customer WhatsApp pe aata hai, to Kirdaar aapke liye hai.</p>
+    </div>
+    <div class="ind-grid">
+      <div class="icard rv"><span class="em">🎾</span><div><h3>Padel &amp; Sports Clubs</h3><p>Court bookings, peak-hour rush, raat ki matches — sab handled.</p></div></div>
+      <div class="icard rv"><span class="em">🏏</span><div><h3>Cricket Turfs</h3><p>Weekend slots minute mein bhar jate hain. Kirdaar pehle jawab deta hai.</p></div></div>
+      <div class="icard rv"><span class="em">💪</span><div><h3>Gyms &amp; Fitness</h3><p>Memberships, trial classes, fee reminders — bina receptionist ke.</p></div></div>
+      <div class="icard rv"><span class="em">💇</span><div><h3>Salons &amp; Spas</h3><p>Appointments, timings ke sawal, shaadi season ka rush — sorted.</p></div></div>
+      <div class="icard rv"><span class="em">🩺</span><div><h3>Clinics</h3><p>Appointment scheduling aur reminders, patients ki apni zuban mein.</p></div></div>
+      <div class="icard rv"><span class="em">🍽️</span><div><h3>Restaurants</h3><p>Table reservations, menu ke sawal, order confirmations — 24/7.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CASE STUDY -->
+<section>
+  <div class="wrap">
+    <div class="case rv">
+      <div>
+        <div class="sec-tag">Pehla Kirdaar</div>
+        <blockquote>"Pehle raat ke messages subah tak parhe jate the — aadhe customers tab tak kahin aur book kar chuke hote. Ab Kirdaar seconds mein jawab deta hai, hold lagata hai, aur subah mujhe sirf confirmed bookings milti hain."</blockquote>
+        <div class="who"><b>Smash Padel Club</b> — DHA Phase 6, Lahore</div>
+      </div>
+      <div class="case-stats">
+        <div><div class="n">&lt;5s</div><div class="l">reply time, din ho ya raat</div></div>
+        <div><div class="n">100%</div><div class="l">messages answered</div></div>
+        <div><div class="n">15min</div><div class="l">smart payment holds</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="rv center">
+      <div class="sec-tag">Pricing</div>
+      <div class="urdu sec-urdu">پیسے وصول</div>
+      <h2 class="sec-en">Less than one part-time employee. Works like three.</h2>
+      <p class="sec-sub">Koi setup fee nahi. Koi lambi contract nahi. Jab chahein cancel karein.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan rv">
+        <h3>Starter</h3><span class="ru-name urdu" style="direction:rtl">ابتدائی</span>
+        <div class="amount">₨ 15,000<small>/month</small></div><div class="per">Chhote business ke liye perfect</div>
+        <ul>
+          <li><b>1 WhatsApp number</b></li>
+          <li>Text conversations — English, Urdu, Minglish</li>
+          <li>Automated bookings &amp; smart holds</li>
+          <li>500 conversations / month</li>
+          <li class="off">Urdu voice notes</li>
+          <li class="off">Payment verification &amp; Fraud Shield</li>
+        </ul>
+        <a href="#cta" class="btn btn-ghost" style="justify-content:center">Start Karein</a>
+      </div>
+      <div class="plan hot rv">
+        <div class="flag">SAB SE POPULAR</div>
+        <h3>Business</h3><span class="ru-name urdu" style="direction:rtl">کاروباری</span>
+        <div class="amount">₨ 35,000<small>/month</small></div><div class="per">Serious business ke liye — full kirdaar</div>
+        <ul>
+          <li><b>Everything in Starter</b>, plus:</li>
+          <li>Natural <b>Urdu voice notes</b> — in aur out dono</li>
+          <li><b>Payment screenshot verification</b></li>
+          <li><b>Fraud Shield</b> + auto blacklisting</li>
+          <li>Unlimited conversations</li>
+          <li>Admin commands + priority support</li>
+        </ul>
+        <a href="#cta" class="btn btn-em" style="justify-content:center">Free Demo Lein</a>
+      </div>
+      <div class="plan rv">
+        <h3>Enterprise</h3><span class="ru-name urdu" style="direction:rtl">ادارہ</span>
+        <div class="amount">Baat Karein</div><div class="per">Chains, franchises aur multi-branch</div>
+        <ul>
+          <li><b>Multiple branches &amp; numbers</b></li>
+          <li>Custom AI personality per branch</li>
+          <li>Central dashboard &amp; reporting</li>
+          <li>Custom integrations (POS, CRM)</li>
+          <li>Dedicated account manager</li>
+        </ul>
+        <a href="#cta" class="btn btn-ghost" style="justify-content:center">Contact Sales</a>
+      </div>
+    </div>
+    <p class="price-note rv">Hisaab lagayein: aik receptionist ki tankhwah <b>~₨ 40,000+</b> — aur wo raat ko phone nahi uthata. 🌙</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="rv center">
+      <div class="sec-tag">FAQ</div>
+      <div class="urdu sec-urdu">اکثر پوچھے جانے والے سوالات</div>
+    </div>
+    <div class="faq-list rv">
+      <details><summary>Kya ye mere existing WhatsApp Business number pe chalega?</summary>
+        <div class="a">Ji bilkul. Aapko naya number ya SIM nahi chahiye. Aik QR scan aur aapka current number Kirdaar se connect ho jata hai — customers ko sirf faster replies milte hain, aur kuch change nahi lagta.</div></details>
+      <details><summary>Urdu voice notes kitni real lagti hain?</summary>
+        <div class="a">Hum state-of-the-art voice AI use karte hain jo natural Pakistani Urdu bolti hai — robot wali awaaz nahi. Demo mein khud sun lein, phir faisla karein.</div></details>
+      <details><summary>Payment verification kaise kaam karta hai?</summary>
+        <div class="a">Customer bank transfer ka screenshot bhejta hai. Kirdaar us se amount, bank aur transaction details parh kar aapke records se match karta hai. Sahi hui to booking auto-confirm, mashkook hui to aapko alert.</div></details>
+      <details><summary>Agar AI se koi aisa sawal ho jaye jo wo handle na kar sake?</summary>
+        <div class="a">Kirdaar gracefully aapko forward kar deta hai aur aapko notify karta hai. Aap kabhi bhi kisi conversation mein khud enter ho sakte hain — number aapka hai, control aapka hai.</div></details>
+      <details><summary>Mera customer data kahan store hota hai? Safe hai?</summary>
+        <div class="a">Data encrypted enterprise-grade database mein store hota hai, sirf aapke business ke liye. Hum aapka data kisi ko sell nahi karte — period.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="wrap">
+    <div class="cta-box rv">
+      <div class="urdu">آج ہی اپنا کردار ہائر کریں</div>
+      <h2>Hire your Kirdaar today. Pehla hafta bilkul free.</h2>
+      <p>Sirf aik WhatsApp message door. Demo dekhein, apne number pe test karein — pasand na aye to koi masla nahi.</p>
+      <a class="wa-cta" href="https://wa.me/923494822767?text=Assalam-o-alaikum!%20Mujhe%20Kirdaar.ai%20ka%20free%20demo%20chahiye." target="_blank" rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        WhatsApp pe Demo Book Karein
+      </a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a href="#" class="logo"><span class="mark">ک</span>Kirdaar<span class="ai">.ai</span></a>
+        <p class="tag">Aapke business ka digital kirdaar — WhatsApp pe bookings, payments aur baat-cheet, 24 ghantay.</p>
+        <p class="made">Dil se banaya gaya, Pakistan mein 🇵🇰</p>
+      </div>
+      <div class="fcols">
+        <div class="fcol"><h4>Product</h4><a href="#features">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
+        <div class="fcol"><h4>Industries</h4><a href="#industries">Sports Clubs</a><a href="#industries">Gyms</a><a href="#industries">Salons</a><a href="#industries">Clinics</a></div>
+        <div class="fcol"><h4>Contact</h4><a href="https://wa.me/923494822767">WhatsApp</a><a href="mailto:hello@kirdaar.ai">hello@kirdaar.ai</a></div>
+      </div>
+    </div>
+    <div class="copy">© 2026 Kirdaar.ai — All rights reserved. · <span class="urdu" style="direction:rtl">ہر پیغام کا جواب، ہر وقت</span></div>
+  </div>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= 3D BACKGROUND (scroll-reactive) ================= */
+(function(){
+  var canvas = document.getElementById('bg3d');
+  if (!window.THREE || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    canvas.style.display='none'; return;
+  }
+  var renderer = new THREE.WebGLRenderer({canvas:canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(innerWidth, innerHeight);
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x05080f, 0.035);
+  var camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, .1, 100);
+  camera.position.set(0, 2.2, 9);
+
+  // --- Particle wave grid ("digital ocean") ---
+  var COLS=130, ROWS=60, SEP=0.42;
+  var count=COLS*ROWS;
+  var positions=new Float32Array(count*3), phases=new Float32Array(count);
+  var i=0,p=0;
+  for(var x=0;x<COLS;x++){
+    for(var z=0;z<ROWS;z++){
+      positions[p]   =(x-COLS/2)*SEP;
+      positions[p+1] =0;
+      positions[p+2] =(z-ROWS/2)*SEP - 4;
+      phases[i]=Math.random()*Math.PI*2;
+      i++; p+=3;
+    }
+  }
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  var mat=new THREE.PointsMaterial({color:0x00d98b, size:0.075, transparent:true, opacity:0.85, sizeAttenuation:true});
+  var waves=new THREE.Points(geo,mat);
+  waves.position.y=-2.2;
+  scene.add(waves);
+
+  // --- Floating wireframe shapes (futuristic geometry) ---
+  var shapes=[];
+  function addShape(g, x,y,z, col, op){
+    var m=new THREE.Mesh(g, new THREE.MeshBasicMaterial({color:col, wireframe:true, transparent:true, opacity:op}));
+    m.position.set(x,y,z);
+    m.userData={rs:0.001+Math.random()*0.003, fy:y, fo:Math.random()*Math.PI*2};
+    scene.add(m); shapes.push(m); return m;
+  }
+  addShape(new THREE.IcosahedronGeometry(1.5,1), -6, 2.5, -4, 0x00d98b, .30);
+  addShape(new THREE.OctahedronGeometry(1.1,0),  6.5, 3.2, -6, 0xf0b429, .28);
+  addShape(new THREE.TorusGeometry(1.4,.04,8,60), 5, 0.5, -3, 0x00d98b, .38);
+  addShape(new THREE.IcosahedronGeometry(0.8,0), -4.5,-0.5, -2, 0x2dd4bf, .34);
+
+  // --- Star field ---
+  var sCount=700, sPos=new Float32Array(sCount*3);
+  for(var s=0;s<sCount*3;s+=3){
+    sPos[s]=(Math.random()-.5)*60; sPos[s+1]=(Math.random()-.5)*40; sPos[s+2]=-10-Math.random()*40;
+  }
+  var sGeo=new THREE.BufferGeometry();
+  sGeo.setAttribute('position', new THREE.BufferAttribute(sPos,3));
+  var stars=new THREE.Points(sGeo, new THREE.PointsMaterial({color:0xffffff,size:0.07,transparent:true,opacity:0.75}));
+  scene.add(stars);
+
+  // --- Scroll + mouse state ---
+  var scrollT=0, mouseX=0, mouseY=0;
+  addEventListener('scroll', function(){
+    var max=document.documentElement.scrollHeight - innerHeight;
+    scrollT = max>0 ? scrollY/max : 0;
+  }, {passive:true});
+  addEventListener('mousemove', function(e){
+    mouseX=(e.clientX/innerWidth-.5); mouseY=(e.clientY/innerHeight-.5);
+  }, {passive:true});
+  addEventListener('resize', function(){
+    camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  var emerald=new THREE.Color(0x00d98b), gold=new THREE.Color(0xf0b429);
+  var clock=new THREE.Clock();
+  (function animate(){
+    requestAnimationFrame(animate);
+    var t=clock.getElapsedTime();
+    // animate wave
+    var pos=geo.attributes.position.array, idx=0;
+    for(var x=0;x<COLS;x++){
+      for(var z=0;z<ROWS;z++){
+        var i3=idx*3;
+        pos[i3+1]=Math.sin(x*0.28+t*1.1)*0.35 + Math.cos(z*0.22+t*0.8)*0.35 + Math.sin(phases[idx]+t)*0.1;
+        idx++;
+      }
+    }
+    geo.attributes.position.needsUpdate=true;
+
+    // scroll drives the world: waves tilt & spin, color drifts emerald→gold→emerald
+    waves.rotation.z = scrollT*0.35;
+    waves.rotation.y = scrollT*0.9 + t*0.015;
+    var mixv = Math.sin(scrollT*Math.PI); // 0→1→0 across the page
+    mat.color.copy(emerald).lerp(gold, mixv*0.55);
+    camera.position.y = 2.2 - scrollT*3.4 + mouseY*0.4;
+    camera.position.x = mouseX*0.9 + Math.sin(scrollT*Math.PI*2)*0.6;
+    camera.position.z = 9 - scrollT*2.5;
+    camera.lookAt(0,-scrollT*2,-2);
+
+    shapes.forEach(function(m,k){
+      m.rotation.x += m.userData.rs; m.rotation.y += m.userData.rs*1.4;
+      m.position.y = m.userData.fy + Math.sin(t*0.6+m.userData.fo)*0.35 - scrollT*(1.5+k*0.6);
+      m.rotation.z = scrollT*(k%2? -1.2:1.2);
+    });
+    stars.rotation.y = t*0.005 + scrollT*0.3;
+    renderer.render(scene,camera);
+  })();
+})();
+
+/* ================= UI BEHAVIOR ================= */
+// nav state
+var nav=document.getElementById('nav');
+addEventListener('scroll',function(){ nav.classList.toggle('scrolled', scrollY>40); },{passive:true});
+
+// reveal on scroll
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target);} });
+},{threshold:.12});
+document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+
+// staggered WhatsApp demo conversation
+var phone=document.getElementById('phoneDemo');
+var pio=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(!e.isIntersecting) return;
+    pio.unobserve(phone);
+    var items=phone.querySelectorAll('.msg, .sysbadge');
+    items.forEach(function(m,i){ setTimeout(function(){ m.classList.add('show'); }, 500+i*750); });
+  });
+},{threshold:.3});
+pio.observe(phone);
+</script>
+<!-- ============ AUTH MODAL (Sign In / Sign Up) ============ -->
+<style>
+#authOverlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  background:rgba(5,8,15,.75);backdrop-filter:blur(6px)}
+#authOverlay.on{display:flex}
+.auth-card{width:380px;max-width:90vw;background:rgba(10,16,28,.92);border:1px solid var(--line);
+  border-radius:22px;padding:36px 32px;position:relative}
+.auth-card .close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);
+  font-size:1.3rem;cursor:pointer;line-height:1}
+.auth-tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.03);border-radius:100px;padding:4px}
+.auth-tabs button{flex:1;padding:9px;border:none;border-radius:100px;background:none;color:var(--muted);
+  font-family:inherit;font-size:.84rem;cursor:pointer;font-weight:500}
+.auth-tabs button.on{background:linear-gradient(135deg,#00e69a,#00b877);color:#04120c;font-weight:700}
+.auth-card label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:7px;margin-top:14px}
+.auth-card input{width:100%;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);
+  border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:.9rem;outline:none}
+.auth-card input:focus{border-color:rgba(0,217,139,.5)}
+.auth-card .btn-submit{width:100%;margin-top:22px;padding:13px;border-radius:100px;border:none;
+  background:linear-gradient(135deg,#00e69a,#00b877);color:#04120c;font-weight:700;font-size:.9rem;
+  cursor:pointer;font-family:inherit}
+.auth-card .btn-submit:disabled{opacity:.6;cursor:default}
+.auth-card .forgot{display:block;text-align:center;margin-top:14px;font-size:.78rem;color:var(--muted);
+  cursor:pointer;background:none;border:none;font-family:inherit;text-decoration:underline}
+.auth-card .msg{margin-top:14px;font-size:.8rem;padding:10px 13px;border-radius:10px;display:none;line-height:1.5}
+.auth-card .msg.error{background:rgba(240,100,100,.12);color:#f28a8a;border:1px solid rgba(240,100,100,.28);display:block}
+.auth-card .msg.ok{background:var(--em-dim);color:#7df5c8;border:1px solid rgba(0,217,139,.28);display:block}
+</style>
+
+<div id="authOverlay">
+  <div class="auth-card">
+    <button class="close" id="authClose">&times;</button>
+    <div class="auth-tabs">
+      <button class="on" id="tabSignIn">Sign In</button>
+      <button id="tabSignUp">Sign Up</button>
+    </div>
+
+    <div id="signInForm">
+      <label>Email</label>
+      <input type="email" id="siEmail" placeholder="you@venue.com" autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="siPassword" placeholder="••••••••" autocomplete="current-password">
+      <button class="btn-submit" id="siSubmit">Sign In</button>
+      <button class="forgot" id="siForgot">Forgot password?</button>
+    </div>
+
+    <div id="signUpForm" style="display:none">
+      <label>Full name</label>
+      <input type="text" id="suName" placeholder="Your name">
+      <label>Email</label>
+      <input type="email" id="suEmail" placeholder="you@venue.com" autocomplete="email">
+      <label>Password</label>
+      <input type="password" id="suPassword" placeholder="At least 8 characters" autocomplete="new-password">
+      <button class="btn-submit" id="suSubmit">Create Account</button>
+    </div>
+
+    <div class="msg" id="authMsg"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://haftvbovrvcqmecaltmu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhZnR2Ym92cnZjcW1lY2FsdG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0NTcsImV4cCI6MjA5Njc3NTQ1N30.ZMZZkLnr16fwOOlesXF4los7yb2ohCaV26Tb7ny3e5I";
+const sbAuth = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const overlay = document.getElementById('authOverlay');
+function openAuth(){ overlay.classList.add('on'); document.getElementById('authMsg').className='msg'; }
+function closeAuth(){ overlay.classList.remove('on'); }
+
+document.getElementById('navSignIn').addEventListener('click', (e) => { e.preventDefault(); openAuth(); });
+document.getElementById('authClose').addEventListener('click', closeAuth);
+overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAuth(); });
+
+document.getElementById('tabSignIn').addEventListener('click', () => {
+  document.getElementById('tabSignIn').classList.add('on');
+  document.getElementById('tabSignUp').classList.remove('on');
+  document.getElementById('signInForm').style.display = 'block';
+  document.getElementById('signUpForm').style.display = 'none';
+  document.getElementById('authMsg').className = 'msg';
+});
+document.getElementById('tabSignUp').addEventListener('click', () => {
+  document.getElementById('tabSignUp').classList.add('on');
+  document.getElementById('tabSignIn').classList.remove('on');
+  document.getElementById('signUpForm').style.display = 'block';
+  document.getElementById('signInForm').style.display = 'none';
+  document.getElementById('authMsg').className = 'msg';
+});
+
+document.getElementById('siSubmit').addEventListener('click', async () => {
+  const email = document.getElementById('siEmail').value.trim();
+  const password = document.getElementById('siPassword').value;
+  const msg = document.getElementById('authMsg'), btn = document.getElementById('siSubmit');
+  msg.className = 'msg';
+  if (!email || !password) { msg.className='msg error'; msg.textContent='Enter both email and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await sbAuth.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) { msg.className='msg error'; msg.textContent=error.message; return; }
+  window.location.href = '/dashboard/';
+});
+
+document.getElementById('siForgot').addEventListener('click', async () => {
+  const email = document.getElementById('siEmail').value.trim();
+  const msg = document.getElementById('authMsg');
+  if (!email) { msg.className='msg error'; msg.textContent='Type your email above first.'; return; }
+  const { error } = await sbAuth.auth.resetPasswordForEmail(email);
+  msg.className = error ? 'msg error' : 'msg ok';
+  msg.textContent = error ? error.message : 'Password reset email sent — check your inbox.';
+});
+
+document.getElementById('suSubmit').addEventListener('click', async () => {
+  const name = document.getElementById('suName').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const password = document.getElementById('suPassword').value;
+  const msg = document.getElementById('authMsg'), btn = document.getElementById('suSubmit');
+  msg.className = 'msg';
+  if (!name || !email || !password) { msg.className='msg error'; msg.textContent='Fill in every field.'; return; }
+  if (password.length < 8) { msg.className='msg error'; msg.textContent='Password needs to be at least 8 characters.'; return; }
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  const { error } = await sbAuth.auth.signUp({ email, password, options: { data: { full_name: name } } });
+  btn.disabled = false; btn.textContent = 'Create Account';
+  if (error) { msg.className='msg error'; msg.textContent=error.message; return; }
+  msg.className = 'msg ok';
+  msg.textContent = "Account created! We're setting up your venue dashboard and will email you once it's ready.";
+});
+</script>
+
+</body>
+</html>

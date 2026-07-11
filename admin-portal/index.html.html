@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirdaar.ai — Admin Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#05080f;--ink:#eaf2ee;--muted:#8fa3a0;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.05);
+  --em:#00d98b;--em-dim:rgba(0,217,139,.12);--gold:#f0b429;--gold-dim:rgba(240,180,41,.12);
+  --red:#f06464;--red-dim:rgba(240,100,100,.12);--radius:18px}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px}
+
+#loginScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-card{width:380px;max-width:90vw;background:rgba(10,16,28,.7);border:1px solid var(--line);border-radius:22px;padding:40px 34px}
+.login-card .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:1.3rem;margin-bottom:6px}
+.login-card .brand .mark{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#f0b429,#c9860f);color:#1a0f00;font-family:'Noto Nastaliq Urdu',serif;font-size:1.4rem;font-weight:700;padding-bottom:7px}
+.login-card .warn-badge{display:inline-block;font-size:.68rem;background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28);padding:3px 10px;border-radius:100px;margin-bottom:16px}
+.login-card .sub{color:var(--muted);font-size:.86rem;margin-bottom:20px}
+.login-card label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:7px;margin-top:16px}
+.login-card input{width:100%;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:.9rem;outline:none}
+.login-card .btn-login{width:100%;margin-top:26px;padding:13px;border-radius:100px;border:none;background:linear-gradient(135deg,#f5c451,#f0b429);color:#1a0f00;font-weight:700;font-size:.92rem;cursor:pointer;font-family:inherit}
+.login-card .btn-login:disabled{opacity:.6}
+.login-card .msg{margin-top:14px;font-size:.82rem;padding:10px 13px;border-radius:10px;display:none}
+.login-card .msg.error{background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28);display:block}
+
+.app{display:none;grid-template-columns:230px 1fr;height:100vh}
+.app.on{display:grid}
+.side{background:rgba(8,13,24,.85);border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:1.1rem;padding:2px 6px 4px}
+.brand .mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#f0b429,#c9860f);color:#1a0f00;font-family:'Noto Nastaliq Urdu',serif;font-size:1.25rem;font-weight:700;padding-bottom:6px}
+.side .tag-admin{font-size:.66rem;color:#f5cf72;background:var(--gold-dim);border:1px solid rgba(240,180,41,.28);padding:3px 10px;border-radius:100px;margin:6px 0 20px;display:inline-block}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;font-size:.86rem;color:var(--muted);cursor:pointer;text-decoration:none}
+.nav a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+.nav a.on{color:#1a0f00;font-weight:600;background:linear-gradient(135deg,#f5c451,#f0b429)}
+.nav a .bdg{margin-left:auto;font-size:.66rem;background:var(--red-dim);color:#f28a8a;padding:2px 8px;border-radius:100px}
+.side .foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.side .foot .logout{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.72rem;text-decoration:underline;font-family:inherit}
+
+.main{overflow-y:auto;padding:32px 40px}
+.topbar h1{font-size:1.6rem;font-weight:600}
+.topbar .sub{color:var(--muted);font-size:.85rem;margin-top:4px;margin-bottom:26px}
+.card{background:rgba(10,16,28,.6);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+.mb20{margin-bottom:20px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:.72rem;color:var(--muted);font-weight:500;padding:0 12px 12px;border-bottom:1px solid var(--line)}
+.tbl td{padding:14px 12px;border-bottom:1px solid var(--line2);font-size:.84rem}
+.tag{font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:100px}
+.tag.em{background:var(--em-dim);color:#7df5c8;border:1px solid rgba(0,217,139,.28)}
+.tag.gold{background:var(--gold-dim);color:#f5cf72;border:1px solid rgba(240,180,41,.28)}
+.tag.red{background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28)}
+.btn{padding:9px 16px;border-radius:100px;border:none;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-approve{background:linear-gradient(135deg,#00e69a,#00b877);color:#04120c}
+.btn-reject{background:var(--red-dim);color:#f28a8a;border:1px solid rgba(240,100,100,.28)}
+.btn-view{background:rgba(255,255,255,.05);color:var(--ink);border:1px solid var(--line)}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:.86rem}
+.page{display:none}
+.page.on{display:block}
+
+.detail-overlay{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;background:rgba(5,8,15,.8)}
+.detail-overlay.on{display:flex}
+.detail-card{width:520px;max-width:92vw;max-height:85vh;overflow-y:auto;background:#0a1018;border:1px solid var(--line);border-radius:20px;padding:30px}
+.detail-card h3{margin-bottom:16px}
+.detail-row{padding:10px 0;border-bottom:1px solid var(--line2);font-size:.86rem}
+.detail-row b{color:var(--muted);display:block;font-size:.72rem;margin-bottom:3px;font-weight:500}
+.detail-actions{display:flex;gap:10px;margin-top:20px}
+.detail-close{float:right;background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand"><span class="mark">ک</span>Kirdaar Admin</div>
+    <div class="warn-badge">🔒 Platform admin only</div>
+    <div class="sub">Sign in with your platform admin account</div>
+    <label>Email</label>
+    <input type="email" id="loginEmail">
+    <label>Password</label>
+    <input type="password" id="loginPassword">
+    <button class="btn-login" id="loginBtn">Sign In</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div class="brand"><span class="mark">ک</span>Kirdaar Admin</div>
+    <span class="tag-admin">Platform Admin</span>
+    <nav class="nav" id="nav">
+      <a class="on" data-go="requests"><span>📋</span> Onboarding Requests <span class="bdg" id="pendingBadge"></span></a>
+      <a data-go="clients"><span>🏢</span> All Clients</a>
+    </nav>
+    <div class="foot"><span id="userEmail" style="font-size:.7rem;color:var(--muted)"></span><button class="logout" id="logoutBtn">Sign out</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1 id="pg-title">Onboarding Requests</h1>
+      <div class="sub" id="pg-sub">Review and approve new venue sign-ups</div>
+    </div>
+
+    <section class="page on" id="requests">
+      <div class="card"><div id="requestsWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+
+    <section class="page" id="clients">
+      <div class="card"><div id="clientsWrap"><div class="empty-state">Loading…</div></div></div>
+    </section>
+  </main>
+</div>
+
+<!-- Request detail modal -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-card">
+    <button class="detail-close" id="detailClose">&times;</button>
+    <h3>Onboarding Request</h3>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- Client metrics modal -->
+<div class="detail-overlay" id="clientOverlay">
+  <div class="detail-card">
+    <button class="detail-close" id="clientClose">&times;</button>
+    <h3 id="clientDetailTitle">Client Metrics</h3>
+    <div id="clientDetailBody"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://haftvbovrvcqmecaltmu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhZnR2Ym92cnZjcW1lY2FsdG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk0NTcsImV4cCI6MjA5Njc3NTQ1N30.ZMZZkLnr16fwOOlesXF4los7yb2ohCaV26Tb7ny3e5I";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function checkExistingSession(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await tryEnterAdmin(session.user);
+}
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg'), btn = document.getElementById('loginBtn');
+  msg.className = 'msg';
+  if (!email || !password) { msg.className='msg error'; msg.textContent='Enter both fields.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) { msg.className='msg error'; msg.textContent=error.message; return; }
+  await tryEnterAdmin(data.user);
+});
+document.getElementById('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+async function tryEnterAdmin(user){
+  // Platform-admin check: if this query returns nothing, RLS is silently blocking
+  // a non-admin — that IS the security gate, not a separate check.
+  const { data: adminRow } = await sb.from('platform_admins').select('user_id').eq('user_id', user.id).maybeSingle();
+  const msg = document.getElementById('loginMsg');
+  if (!adminRow) {
+    msg.className = 'msg error';
+    msg.textContent = 'This account is not a platform admin.';
+    await sb.auth.signOut();
+    return;
+  }
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('on');
+  document.getElementById('userEmail').textContent = user.email;
+  loadRequests();
+  loadClients();
+}
+
+async function loadRequests(){
+  const { data: reqs } = await sb.from('onboarding_requests').select('*').order('created_at', { ascending: false });
+  const pending = (reqs||[]).filter(r => r.status === 'pending');
+  document.getElementById('pendingBadge').textContent = pending.length || '';
+  document.getElementById('pendingBadge').style.display = pending.length ? 'inline-block' : 'none';
+
+  const wrap = document.getElementById('requestsWrap');
+  if (!reqs || !reqs.length) { wrap.innerHTML = '<div class="empty-state">No onboarding requests yet.</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Business</th><th>Niche</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>` +
+    reqs.map(r => `<tr>
+      <td>${escapeHtml(r.business_name)}</td>
+      <td>${escapeHtml(r.niche)}</td>
+      <td>${new Date(r.created_at).toLocaleDateString()}</td>
+      <td>${reqStatusTag(r.status)}</td>
+      <td><button class="btn btn-view" onclick="openRequestDetail('${r.id}')">Review</button></td>
+    </tr>`).join('') + `</tbody></table>`;
+}
+
+let requestsCache = [];
+async function openRequestDetail(id){
+  const { data: reqs } = await sb.from('onboarding_requests').select('*').eq('id', id);
+  const r = reqs[0];
+  requestsCache[id] = r;
+  const answers = r.answers || {};
+  const resources = answers.resources || [];
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-row"><b>Business Name</b>${escapeHtml(r.business_name)}</div>
+    <div class="detail-row"><b>Niche</b>${escapeHtml(r.niche)}</div>
+    <div class="detail-row"><b>Address</b>${escapeHtml(answers.address || '—')}</div>
+    <div class="detail-row"><b>WhatsApp Number</b>${escapeHtml(answers.phone || '—')}</div>
+    <div class="detail-row"><b>Resources</b>${resources.map(x=>`${escapeHtml(x.name)} — ₨${x.price_per_hour}/hr`).join('<br>') || '—'}</div>
+    <div class="detail-row"><b>Status</b>${reqStatusTag(r.status)}</div>
+    ${r.status === 'pending' ? `<div class="detail-actions">
+      <button class="btn btn-approve" onclick="approveRequest('${r.id}')">Approve &amp; Create Venue</button>
+      <button class="btn btn-reject" onclick="rejectRequest('${r.id}')">Reject</button>
+    </div>` : ''}
+  `;
+  document.getElementById('detailOverlay').classList.add('on');
+}
+document.getElementById('detailClose').addEventListener('click', () => document.getElementById('detailOverlay').classList.remove('on'));
+
+async function approveRequest(id){
+  const r = requestsCache[id];
+  if (!r) return;
+  const answers = r.answers || {};
+  const resources = answers.resources || [];
+
+  // 1. Create the venue
+  const { data: venueRows, error: vErr } = await sb.from('venues').insert({
+    name: r.business_name, type: r.niche, address: answers.address || '', phone: answers.phone || '', is_active: true
+  }).select();
+  if (vErr || !venueRows || !venueRows.length) { alert('Failed to create venue: ' + (vErr ? vErr.message : 'unknown error')); return; }
+  const venueId = venueRows[0].id;
+
+  // 2. Create the resources (courts table for now)
+  if (resources.length) {
+    await sb.from('courts').insert(resources.map(x => ({
+      venue_id: venueId, name: x.name, price_per_hour: x.price_per_hour, is_active: true
+    })));
+  }
+
+  // 3. Link the requesting user as that venue's admin
+  await sb.from('venue_admins').insert({ venue_id: venueId, user_id: r.user_id, role: 'owner' });
+
+  // 4. Mark the request approved
+  await sb.from('onboarding_requests').update({
+    status: 'approved', venue_id: venueId, reviewed_at: new Date().toISOString()
+  }).eq('id', id);
+
+  document.getElementById('detailOverlay').classList.remove('on');
+  loadRequests(); loadClients();
+}
+
+async function rejectRequest(id){
+  const notes = prompt('Optional note to the applicant (they will see this):', '');
+  await sb.from('onboarding_requests').update({
+    status: 'rejected', admin_notes: notes || null, reviewed_at: new Date().toISOString()
+  }).eq('id', id);
+  document.getElementById('detailOverlay').classList.remove('on');
+  loadRequests();
+}
+
+async function loadClients(){
+  const { data: venues } = await sb.from('venues').select('*').order('name');
+  const wrap = document.getElementById('clientsWrap');
+  if (!venues || !venues.length) { wrap.innerHTML = '<div class="empty-state">No approved clients yet.</div>'; return; }
+  wrap.innerHTML = `<table class="tbl"><thead><tr><th>Venue</th><th>Type</th><th>Address</th><th></th></tr></thead><tbody>` +
+    venues.map(v => `<tr>
+      <td>${escapeHtml(v.name)}</td><td>${escapeHtml(v.type||'—')}</td><td>${escapeHtml(v.address||'—')}</td>
+      <td><button class="btn btn-view" onclick="openClientDetail('${v.id}')">View metrics</button></td>
+    </tr>`).join('') + `</tbody></table>`;
+}
+
+async function openClientDetail(venueId){
+  document.getElementById('clientDetailTitle').textContent = 'Loading…';
+  document.getElementById('clientOverlay').classList.add('on');
+  const { data: venue } = await sb.from('venues').select('*').eq('id', venueId).single();
+  const { data: bookings } = await sb.from('bookings').select('*').eq('venue_id', venueId);
+  const { data: payments } = await sb.from('payments').select('*').eq('venue_id', venueId);
+  const { data: fraud } = await sb.from('fraud_flags').select('*').eq('venue_id', venueId);
+
+  const confirmed = (bookings||[]).filter(b=>b.status==='confirmed');
+  const revenue = confirmed.reduce((s,b)=>s+parseFloat(b.total_amount||0),0);
+  const verifiedPay = (payments||[]).filter(p=>p.verification_status==='verified').length;
+
+  document.getElementById('clientDetailTitle').textContent = venue.name;
+  document.getElementById('clientDetailBody').innerHTML = `
+    <div class="detail-row"><b>Type</b>${escapeHtml(venue.type||'—')}</div>
+    <div class="detail-row"><b>Address</b>${escapeHtml(venue.address||'—')}</div>
+    <div class="detail-row"><b>Total bookings</b>${(bookings||[]).length}</div>
+    <div class="detail-row"><b>Confirmed revenue</b>₨ ${revenue.toLocaleString()}</div>
+    <div class="detail-row"><b>Verified payments</b>${verifiedPay}</div>
+    <div class="detail-row"><b>Fraud flags</b>${(fraud||[]).length}</div>
+  `;
+}
+document.getElementById('clientClose').addEventListener('click', () => document.getElementById('clientOverlay').classList.remove('on'));
+
+function reqStatusTag(s){ if(s==='approved')return '<span class="tag em">Approved</span>'; if(s==='rejected')return '<span class="tag red">Rejected</span>'; return '<span class="tag gold">Pending</span>'; }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+document.querySelectorAll('#nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === a.dataset.go));
+    document.querySelectorAll('#nav a').forEach(x => x.classList.toggle('on', x === a));
+    document.getElementById('pg-title').textContent = a.dataset.go === 'requests' ? 'Onboarding Requests' : 'All Clients';
+    document.getElementById('pg-sub').textContent = a.dataset.go === 'requests' ? 'Review and approve new venue sign-ups' : 'Every approved venue — metrics for troubleshooting';
+  });
+});
+
+checkExistingSession();
+</script>
+</body>
+</html>
