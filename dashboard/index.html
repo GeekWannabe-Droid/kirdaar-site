@@ -414,7 +414,7 @@ function showOnboardingStatus(status, notes){
       <button class="btn-login" id="statusSignOut" style="max-width:200px;margin:24px auto 0">Sign out</button></div>`;
   } else {
     el.innerHTML = `<div class="status-card"><div class="status-ic">❌</div><h2>Not approved</h2>
-      <p>${notes ? escapeHtml(notes) : 'Your onboarding request wasn\\'t approved. Contact us for details.'}</p>
+      <p>${notes ? escapeHtml(notes) : "Your onboarding request wasn't approved. Contact us for details."}</p>
       <button class="btn-login" id="statusSignOut" style="max-width:200px;margin:24px auto 0">Sign out</button></div>`;
   }
   document.getElementById('statusSignOut').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
